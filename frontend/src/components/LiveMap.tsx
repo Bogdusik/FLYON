@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -70,11 +70,25 @@ interface LiveMapProps {
 
 function MapUpdater({ center, follow }: { center?: [number, number]; follow?: boolean }) {
   const map = useMap();
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (center && follow) {
-      map.setView(center, map.getZoom(), { animate: true, duration: 0.5 });
+      // Debounce map updates to prevent excessive re-renders
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      
+      updateTimeoutRef.current = setTimeout(() => {
+        map.setView(center, map.getZoom(), { animate: true, duration: 0.5 });
+      }, 100); // 100ms debounce for smooth updates
     }
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
   }, [center, follow, map]);
 
   return null;
@@ -84,20 +98,30 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [path, setPath] = useState<[number, number][]>([]);
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetryPoint | null>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Memoize valid points calculation for performance
+  const validPoints = useMemo(() => {
+    if (telemetry.length === 0) return [];
+    
+    return telemetry
+      .filter(t => 
+        t &&
+        typeof t.latitude === 'number' && !isNaN(t.latitude) &&
+        typeof t.longitude === 'number' && !isNaN(t.longitude) &&
+        t.latitude >= -90 && t.latitude <= 90 &&
+        t.longitude >= -180 && t.longitude <= 180
+      )
+      .map(t => [t.latitude, t.longitude] as [number, number]);
+  }, [telemetry]);
+
+  // Debounced update to prevent excessive re-renders
   useEffect(() => {
-    if (telemetry.length > 0) {
-      // Filter and validate all telemetry points
-      const validPoints = telemetry
-        .filter(t => 
-          t &&
-          typeof t.latitude === 'number' && !isNaN(t.latitude) &&
-          typeof t.longitude === 'number' && !isNaN(t.longitude) &&
-          t.latitude >= -90 && t.latitude <= 90 &&
-          t.longitude >= -180 && t.longitude <= 180
-        )
-        .map(t => [t.latitude, t.longitude] as [number, number]);
-      
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    updateTimeoutRef.current = setTimeout(() => {
       if (validPoints.length > 0) {
         // Set current position to the latest point
         const latest = validPoints[validPoints.length - 1];
@@ -111,14 +135,20 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
         if (showPath) {
           setPath(validPoints);
         }
+      } else {
+        // Clear path if no telemetry
+        setPath([]);
+        setCurrentPosition(null);
+        setLatestTelemetry(null);
       }
-    } else {
-      // Clear path if no telemetry
-      setPath([]);
-      setCurrentPosition(null);
-      setLatestTelemetry(null);
-    }
-  }, [telemetry, showPath]);
+    }, 50); // 50ms debounce for smooth real-time updates
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [validPoints, telemetry, showPath]);
 
   const defaultCenter: [number, number] = center || currentPosition || [51.505, -0.09];
 

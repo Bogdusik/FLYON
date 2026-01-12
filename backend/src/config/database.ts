@@ -1,5 +1,6 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import logger from '../utils/logger';
 
 dotenv.config();
 
@@ -26,9 +27,14 @@ export const pool = new Pool({
 export async function testConnection(): Promise<void> {
   try {
     const result = await pool.query('SELECT NOW(), PostGIS_version()');
-    console.log('✅ Database connected:', result.rows[0]);
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    logger.info('✅ Database connected', { 
+      postgisVersion: result.rows[0]?.postgis_version 
+    });
+  } catch (error: any) {
+    logger.error('❌ Database connection failed', { 
+      error: error.message,
+      stack: error.stack 
+    });
     throw error;
   }
 }
@@ -43,15 +49,19 @@ export async function query(text: string, params?: any[]): Promise<pg.QueryResul
     const duration = Date.now() - start;
     // Only log slow queries (>50ms) or important queries to reduce noise
     if (duration > 50 || text.includes('SELECT') && text.includes('users') && text.includes('WHERE id')) {
-      console.log('Executed query', { 
+      logger.debug('Executed query', { 
         text: text.substring(0, 100) + (text.length > 100 ? '...' : ''), 
         duration, 
         rows: res.rowCount 
       });
     }
     return res;
-  } catch (error) {
-    console.error('Query error', { text, error });
+  } catch (error: any) {
+    logger.error('Query error', { 
+      text: text.substring(0, 200),
+      error: error.message,
+      code: error.code 
+    });
     throw error;
   }
 }

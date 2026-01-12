@@ -11,6 +11,7 @@ import {
   deleteFlight,
   deleteAllFlights,
 } from '../services/flightService';
+import { updateFlightStats } from '../services/telemetryService';
 
 const router = express.Router();
 
@@ -59,6 +60,17 @@ router.get('/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ error: 'Flight not found' });
     return;
   }
+  
+  // If flight is completed but statistics are missing, trigger calculation in background
+  if (flight.status === 'completed' && 
+      !flight.total_distance_meters && !flight.max_altitude_meters && 
+      !flight.max_speed_mps && !flight.min_battery_percent) {
+    // Trigger stats calculation asynchronously (don't wait)
+    updateFlightStats(flight.id).catch((error) => {
+      console.error('Failed to calculate stats for completed flight:', error);
+    });
+  }
+  
   res.json(flight);
 }));
 
@@ -73,6 +85,15 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     ended_at: ended_at ? new Date(ended_at) : undefined,
     status,
   });
+  
+  // If flight was just completed, calculate statistics
+  if (status === 'completed' || (flight.status === 'completed' && status === undefined)) {
+    updateFlightStats(flight.id).catch((error) => {
+      // Log error but don't fail the request
+      console.error('Failed to update flight stats:', error);
+    });
+  }
+  
   res.json(flight);
 }));
 
@@ -162,6 +183,29 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).user.id;
   await deleteFlight(req.params.id, userId);
   res.status(204).send();
+}));
+
+/**
+ * POST /api/v1/flights/:id/recalculate-stats
+ * Force recalculation of flight statistics
+ */
+router.post('/:id/recalculate-stats', asyncHandler(async (req, res) => {
+  const userId = (req as any).user.id;
+  const flightId = req.params.id;
+  
+  // Verify flight belongs to user
+  const flight = await getFlightById(flightId, userId);
+  if (!flight) {
+    res.status(404).json({ error: 'Flight not found' });
+    return;
+  }
+  
+  // Recalculate statistics
+  await updateFlightStats(flightId);
+  
+  // Return updated flight data
+  const updatedFlight = await getFlightById(flightId, userId);
+  res.json({ success: true, flight: updatedFlight });
 }));
 
 /**

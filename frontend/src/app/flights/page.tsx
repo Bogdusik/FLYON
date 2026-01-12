@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { flightsAPI } from '@/lib/api';
 import { Flight } from '@/types';
+import FadeIn from '@/components/FadeIn';
 
 export default function FlightsPage() {
   const router = useRouter();
@@ -32,7 +33,14 @@ export default function FlightsPage() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        <div className="text-center">
+          <div className="loading-spinner w-12 h-12 mx-auto mb-4"></div>
+          <p className="text-white/70">Loading flights...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

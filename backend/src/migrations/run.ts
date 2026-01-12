@@ -12,6 +12,7 @@ async function runMigrations() {
     .filter(file => file.endsWith('.sql'))
     .sort();
 
+  // Migration logging is fine with console for CLI tool
   console.log(`Found ${files.length} migration files`);
 
   for (const file of files) {

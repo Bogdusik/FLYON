@@ -45,8 +45,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full glass-strong rounded-xl shadow-2xl p-8">
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="max-w-xl w-full glass-strong rounded-xl shadow-2xl p-10">
         <h1 className="text-3xl font-bold text-center mb-6 gradient-text">
           Create FLYON Account
         </h1>

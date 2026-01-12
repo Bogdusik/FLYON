@@ -1,4 +1,6 @@
 import { query } from '../config/database';
+import { updateFlightStats } from './telemetryService';
+import logger from '../utils/logger';
 
 /**
  * Auto-complete old active flights
@@ -33,6 +35,16 @@ export async function autoCompleteInactiveFlights(): Promise<number> {
     [thresholdTime]
   );
 
+  // Calculate statistics for completed flights
+  if (result.rows.length > 0) {
+    const flightIds = result.rows.map(row => row.id);
+    for (const flightId of flightIds) {
+      updateFlightStats(flightId).catch((error) => {
+        logger.error('Failed to update stats for auto-completed flight', { flightId, error: error.message });
+      });
+    }
+  }
+
   return result.rowCount || 0;
 }
 
@@ -54,4 +66,9 @@ export async function completeFlight(flightId: string, userId: string): Promise<
      WHERE id = $2 AND user_id = $3`,
     [endedAt, flightId, userId]
   );
+
+  // Calculate statistics after completing flight
+  updateFlightStats(flightId).catch((error) => {
+    logger.error('Failed to update stats for completed flight', { flightId, error: error.message });
+  });
 }

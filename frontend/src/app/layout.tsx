@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import DroneBackground from '@/components/DroneBackground';
+import ErrorBoundaryWrapper from '@/components/ErrorBoundaryWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,10 +19,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <DroneBackground />
-        <div className="relative z-10">
-          {children}
-        </div>
+        <ErrorBoundaryWrapper>
+          <DroneBackground />
+          <div className="relative z-10">
+            {children}
+          </div>
+        </ErrorBoundaryWrapper>
       </body>
     </html>
   );

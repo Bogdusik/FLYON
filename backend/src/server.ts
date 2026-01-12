@@ -120,7 +120,7 @@ async function start() {
         .catch(error => logger.error('Error auto-completing flights on startup:', error));
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', { error: error.message, stack: error.stack });
     process.exit(1);
   }
 }

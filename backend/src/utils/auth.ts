@@ -44,8 +44,13 @@ export function generateDeviceToken(droneId: string, userId: string): string {
 
 /**
  * Verify and decode JWT token
+ * @throws Error if token is invalid or expired
  */
 export function verifyToken(token: string): { userId: string; email?: string; droneId?: string; type: string } {
+  if (!token) {
+    throw new Error('Token is required');
+  }
+  
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     return decoded;

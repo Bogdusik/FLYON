@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { verifyToken } from '../utils/auth';
 import { query } from '../config/database';
+import logger from '../utils/logger';
 
 /**
  * WebSocket server for real-time telemetry updates
@@ -24,7 +25,7 @@ class FlightWebSocketServer {
       this.handleConnection(ws, req);
     });
 
-    console.log(`🔌 WebSocket server running on port ${port}`);
+    logger.info(`🔌 WebSocket server running on port ${port}`);
   }
 
   private async handleConnection(ws: WebSocket, req: any) {
@@ -62,7 +63,7 @@ class FlightWebSocketServer {
       });
 
       ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logger.error('WebSocket error', { error: error.message, userId: decoded.userId });
         this.clients.delete(ws);
       });
 
@@ -73,7 +74,10 @@ class FlightWebSocketServer {
       }));
 
     } catch (error: any) {
-      console.error('WebSocket authentication error:', error);
+      logger.error('WebSocket authentication error', { 
+        error: error.message,
+        ip: req.socket.remoteAddress 
+      });
       ws.close(1008, error.message || 'Authentication failed');
     }
   }

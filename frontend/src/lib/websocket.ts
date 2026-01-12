@@ -11,12 +11,13 @@ export interface WebSocketMessage {
 
 export class FlightWebSocketClient {
   private ws: WebSocket | null = null;
-  private token: string;
+  public readonly token: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private messageHandlers: Map<string, Set<(data: any) => void>> = new Map();
   private isConnecting = false;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
 
   constructor(token: string) {
     this.token = token;
@@ -76,15 +77,28 @@ export class FlightWebSocketClient {
   private attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('Max reconnection attempts reached');
+      // Notify handlers about connection failure
+      const failureHandlers = this.messageHandlers.get('connection_failed');
+      if (failureHandlers) {
+        failureHandlers.forEach((handler) => handler({ message: 'Max reconnection attempts reached' }));
+      }
       return;
+    }
+
+    // Clear any existing reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-    setTimeout(() => {
+    this.reconnectTimeout = setTimeout(() => {
       console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      this.connect().catch(console.error);
+      this.connect().catch((error) => {
+        console.error('Reconnection attempt failed:', error);
+        // Continue attempting reconnection
+      });
     }, delay);
   }
 
@@ -134,11 +148,24 @@ export class FlightWebSocketClient {
   }
 
   disconnect() {
+    // Clear reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // Close WebSocket connection
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
+
+    // Clear all message handlers
     this.messageHandlers.clear();
+    
+    // Reset reconnection attempts
+    this.reconnectAttempts = 0;
+    this.isConnecting = false;
   }
 }
 
@@ -146,8 +173,24 @@ export class FlightWebSocketClient {
 let wsClient: FlightWebSocketClient | null = null;
 
 export function getWebSocketClient(token: string): FlightWebSocketClient {
-  if (!wsClient || wsClient !== wsClient) {
-    wsClient = new FlightWebSocketClient(token);
+  // If client exists and token matches, reuse it
+  if (wsClient && wsClient.token === token) {
+    return wsClient;
   }
+  
+  // If client exists but token changed, disconnect old one
+  if (wsClient) {
+    wsClient.disconnect();
+  }
+  
+  // Create new client with new token
+  wsClient = new FlightWebSocketClient(token);
   return wsClient;
+}
+
+export function disconnectWebSocketClient() {
+  if (wsClient) {
+    wsClient.disconnect();
+    wsClient = null;
+  }
 }
