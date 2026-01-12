@@ -20,8 +20,16 @@ export const telemetryInputSchema = z.object({
 export type TelemetryInputValidated = z.infer<typeof telemetryInputSchema>;
 
 /**
- * Validate telemetry input
+ * Validate telemetry input with detailed error messages
  */
 export function validateTelemetryInput(input: any): TelemetryInputValidated {
-  return telemetryInputSchema.parse(input);
+  try {
+    return telemetryInputSchema.parse(input);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      const errors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`Validation failed: ${errors}`);
+    }
+    throw error;
+  }
 }

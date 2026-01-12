@@ -26,16 +26,29 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
+// Handle auth errors and network errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle authentication errors
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
     }
+    
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error:', error.message);
+      // Could show a toast notification here
+    }
+    
+    // Handle server errors (500+)
+    if (error.response?.status >= 500) {
+      console.error('Server error:', error.response.data);
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -88,6 +101,8 @@ export const flightsAPI = {
     api.patch(`/flights/${id}`, { status: 'completed', ended_at: new Date().toISOString() }),
   getTelemetry: (id: string, params?: { limit?: number; offset?: number; start_time?: string; end_time?: string }) =>
     api.get(`/flights/${id}/telemetry`, { params }),
+  recalculateStats: (id: string) =>
+    api.post(`/flights/${id}/recalculate-stats`),
   uploadLog: (file: File, droneId: string, sessionId?: string) => {
     const formData = new FormData();
     formData.append('file', file);

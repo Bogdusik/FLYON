@@ -1,48 +1,48 @@
 # FLYON - Testing Guide
 
-## 🎯 Как работает проект FLYON
+## 🎯 How FLYON Works
 
-FLYON - это платформа для анализа полетов дронов. Она помогает:
-- 📊 Анализировать полеты после завершения
-- ⚠️ Получать предупреждения об опасных зонах в реальном времени
-- 📈 Просматривать графики телеметрии (высота, скорость, батарея)
-- 🗺️ Отслеживать траектории полетов на карте
-- 📤 Экспортировать данные в KML/GPX форматы
+FLYON is a drone flight analytics platform. It helps:
+- 📊 Analyze flights after completion
+- ⚠️ Receive danger zone warnings in real-time
+- 📈 View telemetry graphs (altitude, speed, battery)
+- 🗺️ Track flight trajectories on a map
+- 📤 Export data to KML/GPX formats
 
-### Основные компоненты:
+### Main Components:
 
-1. **Backend API** (порт 3001) - обрабатывает данные, хранит в базе
-2. **Frontend** (порт 3000) - веб-интерфейс для пользователя
-3. **WebSocket** (порт 3002) - real-time обновления
-4. **PostgreSQL + PostGIS** - база данных с геопространственными данными
+1. **Backend API** (port 3001) - processes data, stores in database
+2. **Frontend** (port 3000) - web interface for users
+3. **WebSocket** (port 3002) - real-time updates
+4. **PostgreSQL + PostGIS** - database with geospatial data
 
 ---
 
-## 🚀 Как запустить проект для тестирования
+## 🚀 How to Start the Project for Testing
 
-### Шаг 1: Запуск Docker (база данных)
+### Step 1: Start Docker (Database)
 
 ```bash
-# Убедитесь, что Docker Desktop запущен
+# Make sure Docker Desktop is running
 docker-compose up -d
 
-# Проверьте, что контейнеры работают
+# Check that containers are running
 docker ps
 ```
 
-Должны быть запущены:
-- `flyon-postgres` - база данных
-- `flyon-redis` - кэш (опционально)
+Should be running:
+- `flyon-postgres` - database
+- `flyon-redis` - cache (optional)
 
-### Шаг 2: Настройка Backend
+### Step 2: Setup Backend
 
 ```bash
 cd backend
 
-# Установите зависимости (если еще не установлены)
+# Install dependencies (if not already installed)
 npm install
 
-# Создайте .env файл (если еще не создан)
+# Create .env file (if not already created)
 cat > .env << 'EOF'
 DATABASE_URL=postgresql://flyon:flyon_dev_password@localhost:5432/flyon
 JWT_SECRET=your-secret-key-change-in-production
@@ -55,78 +55,78 @@ CORS_ORIGIN=http://localhost:3000
 NODE_ENV=development
 EOF
 
-# Запустите миграции
+# Run migrations
 npm run migrate
 
-# Запустите backend сервер
+# Start backend server
 npm run dev
 ```
 
-Backend должен запуститься на `http://localhost:3001`
+Backend should start on `http://localhost:3001`
 
-### Шаг 3: Настройка Frontend
+### Step 3: Setup Frontend
 
 ```bash
 cd frontend
 
-# Установите зависимости (если еще не установлены)
+# Install dependencies (if not already installed)
 npm install
 
-# Создайте .env.local файл (если еще не создан)
+# Create .env.local file (if not already created)
 cat > .env.local << 'EOF'
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_WS_URL=ws://localhost:3002
 EOF
 
-# Запустите frontend сервер
+# Start frontend server
 npm run dev
 ```
 
-Frontend должен запуститься на `http://localhost:3000`
+Frontend should start on `http://localhost:3000`
 
 ---
 
-## 🧪 Как протестировать проект
+## 🧪 How to Test the Project
 
-### Тест 1: Регистрация и вход
+### Test 1: Registration and Login
 
-1. Откройте `http://localhost:3000`
-2. Нажмите **"Register"**
-3. Заполните форму:
+1. Open `http://localhost:3000`
+2. Click **"Register"**
+3. Fill in the form:
    - Email: `test@example.com`
-   - Password: `Test1234` (минимум 8 символов)
-   - Name: `Test User` (опционально)
-4. Нажмите **"Register"**
-5. Вы должны автоматически перейти на Dashboard
+   - Password: `Test1234` (minimum 8 characters)
+   - Name: `Test User` (optional)
+4. Click **"Register"**
+5. You should automatically be redirected to Dashboard
 
-**Ожидаемый результат:** ✅ Вы видите Dashboard с приветствием
+**Expected result:** ✅ You see Dashboard with welcome message
 
 ---
 
-### Тест 2: Создание дрона
+### Test 2: Create a Drone
 
-1. Перейдите в раздел **"Drones"**
-2. Нажмите **"Add Drone"**
-3. Заполните форму:
+1. Go to **"Drones"** section
+2. Click **"Add Drone"**
+3. Fill in the form:
    - Name: `My Test Drone`
-   - Model: `FPV 5 inch` (опционально)
-   - Manufacturer: `Custom` (опционально)
-4. Нажмите **"Add"**
-5. **ВАЖНО:** Скопируйте **Device Token** - он понадобится для отправки телеметрии!
+   - Model: `FPV 5 inch` (optional)
+   - Manufacturer: `Custom` (optional)
+4. Click **"Add"**
+5. **IMPORTANT:** Copy the **Device Token** - you'll need it to send telemetry!
 
-**Ожидаемый результат:** ✅ Дрон создан, Device Token отображается
+**Expected result:** ✅ Drone created, Device Token displayed
 
 ---
 
-### Тест 3: Отправка тестовой телеметрии (через API)
+### Test 3: Send Test Telemetry (via API)
 
-Откройте новый терминал и выполните:
+Open a new terminal and run:
 
 ```bash
-# Замените YOUR_DEVICE_TOKEN на токен из шага 2
+# Replace YOUR_DEVICE_TOKEN with token from step 2
 DEVICE_TOKEN="your_device_token_here"
 
-# Отправьте тестовую телеметрию
+# Send test telemetry
 curl -X POST http://localhost:3001/api/v1/telemetry \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H "Content-Type: application/json" \
@@ -142,26 +142,26 @@ curl -X POST http://localhost:3001/api/v1/telemetry \
   }'
 ```
 
-**Ожидаемый результат:** ✅ Ответ `{"success": true}`
+**Expected result:** ✅ Response `{"success": true}`
 
 ---
 
-### Тест 4: Просмотр полета
+### Test 4: View Flight
 
-1. Перейдите в раздел **"Flights"**
-2. Вы должны увидеть новый полет
-3. Нажмите на полет, чтобы открыть детали
+1. Go to **"Flights"** section
+2. You should see a new flight
+3. Click on the flight to open details
 
-**Ожидаемый результат:** ✅ 
-- Видите карту с позицией дрона
-- Видите статистику (высота, скорость, батарея)
-- Видите графики телеметрии (если отправлено несколько точек)
+**Expected result:** ✅ 
+- See map with drone position
+- See statistics (altitude, speed, battery)
+- See telemetry graphs (if multiple points sent)
 
 ---
 
-### Тест 5: Отправка нескольких точек телеметрии
+### Test 5: Send Multiple Telemetry Points
 
-Создайте файл `test_telemetry.sh`:
+Create a file `test_telemetry.sh`:
 
 ```bash
 #!/bin/bash
@@ -169,7 +169,7 @@ curl -X POST http://localhost:3001/api/v1/telemetry \
 DEVICE_TOKEN="your_device_token_here"
 API_URL="http://localhost:3001/api/v1/telemetry"
 
-# Отправляем несколько точек для создания траектории
+# Send multiple points to create trajectory
 for i in {1..10}; do
   lat=$(echo "51.505 + $i * 0.001" | bc)
   lon=$(echo "-0.09 + $i * 0.001" | bc)
@@ -194,7 +194,7 @@ for i in {1..10}; do
 done
 ```
 
-Или используйте Python:
+Or use Python:
 
 ```python
 import requests
@@ -203,7 +203,7 @@ import time
 DEVICE_TOKEN = "your_device_token_here"
 API_URL = "http://localhost:3001/api/v1/telemetry"
 
-# Отправляем несколько точек
+# Send multiple points
 for i in range(1, 11):
     lat = 51.505 + i * 0.001
     lon = -0.09 + i * 0.001
@@ -231,16 +231,16 @@ for i in range(1, 11):
     time.sleep(0.5)
 ```
 
-**Ожидаемый результат:** ✅ 
-- В разделе Flights видите полет с траекторией
-- На карте видите путь полета
-- Графики показывают изменения высоты, скорости, батареи
+**Expected result:** ✅ 
+- In Flights section see flight with trajectory
+- On map see flight path
+- Graphs show altitude, speed, battery changes
 
 ---
 
-### Тест 6: Загрузка лога полета
+### Test 6: Upload Flight Log
 
-1. Создайте тестовый CSV файл `test_flight.csv`:
+1. Create a test CSV file `test_flight.csv`:
 
 ```csv
 timestamp,latitude,longitude,altitude,speed,battery,heading
@@ -250,83 +250,83 @@ timestamp,latitude,longitude,altitude,speed,battery,heading
 2024-01-11T12:00:15Z,51.508,-0.093,115.0,16.5,84.0,60.0
 ```
 
-2. Перейдите в **"Flights"** → **"Upload Log"**
-3. Выберите дрон
-4. Перетащите файл `test_flight.csv` или нажмите "browse"
-5. Нажмите **"Upload Log"**
+2. Go to **"Flights"** → **"Upload Log"**
+3. Select drone
+4. Drag and drop `test_flight.csv` file or click "browse"
+5. Click **"Upload Log"**
 
-**Ожидаемый результат:** ✅ 
-- Успешное сообщение о загрузке
-- Новый полет появляется в списке
-- Все точки телеметрии загружены
-
----
-
-### Тест 7: Просмотр графиков
-
-1. Откройте любой полет с телеметрией
-2. Прокрутите вниз до раздела с графиками
-3. Вы должны увидеть:
-   - График высоты
-   - График скорости
-   - График батареи
-
-**Ожидаемый результат:** ✅ Графики отображаются корректно
+**Expected result:** ✅ 
+- Success message about upload
+- New flight appears in list
+- All telemetry points loaded
 
 ---
 
-### Тест 8: Экспорт полета
+### Test 7: View Graphs
 
-1. Откройте детали полета
-2. Нажмите **"Export KML"** или **"Export GPX"**
-3. Файл должен автоматически скачаться
+1. Open any flight with telemetry
+2. Scroll down to graphs section
+3. You should see:
+   - Altitude graph
+   - Speed graph
+   - Battery graph
 
-**Ожидаемый результат:** ✅ Файл скачивается, можно открыть в Google Earth (KML) или GPS устройстве (GPX)
+**Expected result:** ✅ Graphs display correctly
 
 ---
 
-### Тест 9: Создание опасной зоны
+### Test 8: Export Flight
 
-1. Перейдите в раздел **"Danger Zones"** (если есть в навигации)
-2. Нажмите **"Add Danger Zone"**
-3. Заполните форму:
+1. Open flight details
+2. Click **"Export KML"** or **"Export GPX"**
+3. File should automatically download
+
+**Expected result:** ✅ File downloads, can open in Google Earth (KML) or GPS device (GPX)
+
+---
+
+### Test 9: Create Danger Zone
+
+1. Go to **"Danger Zones"** section (if available in navigation)
+2. Click **"Add Danger Zone"**
+3. Fill in the form:
    - Name: `Test Zone`
    - Coordinates: `[{"lat": 51.505, "lon": -0.09}, {"lat": 51.506, "lon": -0.09}, {"lat": 51.506, "lon": -0.091}, {"lat": 51.505, "lon": -0.091}]`
-4. Сохраните
+4. Save
 
-**Ожидаемый результат:** ✅ Опасная зона создана
-
----
-
-### Тест 10: Real-time обновления (WebSocket)
-
-1. Откройте детали активного полета
-2. В другом терминале отправляйте телеметрию (как в Тесте 3)
-3. Наблюдайте за обновлениями на странице в реальном времени
-
-**Ожидаемый результат:** ✅ 
-- Карта обновляется автоматически
-- Графики обновляются
-- Позиция дрона движется на карте
+**Expected result:** ✅ Danger zone created
 
 ---
 
-## 🔍 Проверка работоспособности
+### Test 10: Real-Time Updates (WebSocket)
 
-### Проверка Backend
+1. Open details of an active flight
+2. In another terminal, send telemetry (as in Test 3)
+3. Watch updates on the page in real-time
+
+**Expected result:** ✅ 
+- Map updates automatically
+- Graphs update
+- Drone position moves on map
+
+---
+
+## 🔍 Health Checks
+
+### Check Backend
 
 ```bash
 # Health check
 curl http://localhost:3001/health
 
-# Должен вернуть: {"status":"ok","timestamp":"..."}
+# Should return: {"status":"ok","timestamp":"..."}
 ```
 
-### Проверка Frontend
+### Check Frontend
 
-Откройте `http://localhost:3000` - должна загрузиться главная страница
+Open `http://localhost:3000` - main page should load
 
-### Проверка базы данных
+### Check Database
 
 ```bash
 docker exec -it flyon-postgres psql -U flyon -d flyon -c "SELECT COUNT(*) FROM users;"
@@ -334,9 +334,9 @@ docker exec -it flyon-postgres psql -U flyon -d flyon -c "SELECT COUNT(*) FROM u
 
 ---
 
-## 📝 Примеры тестовых данных
+## 📝 Test Data Examples
 
-### Тестовая телеметрия (JSON)
+### Test Telemetry (JSON)
 
 ```json
 {
@@ -351,7 +351,7 @@ docker exec -it flyon-postgres psql -U flyon -d flyon -c "SELECT COUNT(*) FROM u
 }
 ```
 
-### Тестовый CSV лог
+### Test CSV Log
 
 ```csv
 timestamp,latitude,longitude,altitude,speed,battery
@@ -361,55 +361,55 @@ timestamp,latitude,longitude,altitude,speed,battery
 
 ---
 
-## 🐛 Решение проблем
+## 🐛 Troubleshooting
 
-### Backend не запускается
-- Проверьте, что порт 3001 свободен: `lsof -ti:3001`
-- Проверьте логи: `cd backend && npm run dev`
+### Backend won't start
+- Check that port 3001 is free: `lsof -ti:3001`
+- Check logs: `cd backend && npm run dev`
 
-### Frontend не запускается
-- Проверьте, что порт 3000 свободен: `lsof -ti:3000`
-- Проверьте `.env.local` файл
+### Frontend won't start
+- Check that port 3000 is free: `lsof -ti:3000`
+- Check `.env.local` file
 
-### База данных не работает
-- Проверьте Docker: `docker ps`
-- Проверьте логи: `docker-compose logs postgres`
+### Database not working
+- Check Docker: `docker ps`
+- Check logs: `docker-compose logs postgres`
 
-### Телеметрия не отправляется
-- Проверьте Device Token
-- Проверьте формат данных (должны быть latitude, longitude, altitude, battery)
-- Проверьте логи backend
-
----
-
-## ✅ Чеклист тестирования
-
-- [ ] Регистрация пользователя
-- [ ] Вход в систему
-- [ ] Создание дрона
-- [ ] Отправка телеметрии через API
-- [ ] Просмотр полетов
-- [ ] Просмотр деталей полета
-- [ ] Просмотр графиков
-- [ ] Загрузка лога (CSV/JSON)
-- [ ] Экспорт в KML
-- [ ] Экспорт в GPX
-- [ ] Создание опасной зоны
-- [ ] Real-time обновления (WebSocket)
+### Telemetry not sending
+- Check Device Token
+- Check data format (must have latitude, longitude, altitude, battery)
+- Check backend logs
 
 ---
 
-## 🎯 Быстрый тест (5 минут)
+## ✅ Testing Checklist
 
-1. Запустите все сервисы (Docker, backend, frontend)
-2. Зарегистрируйтесь
-3. Создайте дрон
-4. Отправьте 1 точку телеметрии через curl
-5. Проверьте, что полет появился в списке
-6. Откройте полет и проверьте карту
-
-**Если все работает - проект готов к использованию!** ✅
+- [ ] User registration
+- [ ] Login
+- [ ] Create drone
+- [ ] Send telemetry via API
+- [ ] View flights
+- [ ] View flight details
+- [ ] View graphs
+- [ ] Upload log (CSV/JSON)
+- [ ] Export to KML
+- [ ] Export to GPX
+- [ ] Create danger zone
+- [ ] Real-time updates (WebSocket)
 
 ---
 
-**Для более подробной информации см. [DRONE_CONNECTION_GUIDE.md](./DRONE_CONNECTION_GUIDE.md)**
+## 🎯 Quick Test (5 minutes)
+
+1. Start all services (Docker, backend, frontend)
+2. Register
+3. Create drone
+4. Send 1 telemetry point via curl
+5. Check that flight appears in list
+6. Open flight and check map
+
+**If everything works - project is ready to use!** ✅
+
+---
+
+**For more detailed information see [DRONE_CONNECTION_GUIDE.md](./DRONE_CONNECTION_GUIDE.md)**

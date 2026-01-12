@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 /**
  * Global error handler middleware
@@ -9,7 +10,13 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ): void {
-  console.error('Error:', err);
+  logger.error('Request error', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+  });
 
   // Database errors
   if (err.message.includes('duplicate key')) {

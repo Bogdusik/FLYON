@@ -12,14 +12,26 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Telemetry } from '@/types';
+import { parsePosition } from '@/utils/position';
 
 interface TelemetryGraphsProps {
   telemetry: Telemetry[];
 }
 
+// Maximum points to display on graphs for performance
+const MAX_GRAPH_POINTS = 1000;
+
 export default function TelemetryGraphs({ telemetry }: TelemetryGraphsProps) {
   const chartData = useMemo(() => {
-    return telemetry.map((point, index) => {
+    // Limit points for performance - sample if too many
+    let dataToProcess = telemetry;
+    if (telemetry.length > MAX_GRAPH_POINTS) {
+      // Sample evenly across the dataset
+      const step = Math.ceil(telemetry.length / MAX_GRAPH_POINTS);
+      dataToProcess = telemetry.filter((_, index) => index % step === 0 || index === telemetry.length - 1);
+    }
+
+    return dataToProcess.map((point, index) => {
       const position = parsePosition(point.position);
       return {
         time: index,
@@ -156,8 +168,3 @@ export default function TelemetryGraphs({ telemetry }: TelemetryGraphsProps) {
   );
 }
 
-function parsePosition(wkt: string): { lat: number; lon: number } | null {
-  const match = wkt.match(/POINT\(([^ ]+) ([^ ]+)\)/);
-  if (!match) return null;
-  return { lat: parseFloat(match[2]), lon: parseFloat(match[1]) };
-}
