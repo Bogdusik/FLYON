@@ -60,7 +60,7 @@ export const authAPI = {
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
-  updateMe: (data: { name?: string }) => api.patch('/auth/me', data),
+  updateMe: (data: { name?: string; phone?: string; avatar_url?: string }) => api.patch('/auth/me', data),
   deleteMe: () => api.delete('/auth/me'),
 };
 
@@ -155,6 +155,71 @@ export const exportAPI = {
   exportData: () => api.get('/export/data'),
   exportFlightKML: (flightId: string) => api.get(`/export/flights/${flightId}/kml`, { responseType: 'blob' }),
   exportFlightGPX: (flightId: string) => api.get(`/export/flights/${flightId}/gpx`, { responseType: 'blob' }),
+};
+
+// Remotes API
+export const remotesAPI = {
+  getAll: () => api.get('/remotes'),
+  getById: (id: string) => api.get(`/remotes/${id}`),
+  connectRadioMaster: (data?: { name?: string; model?: string }) => api.post('/remotes/radiomaster/connect', data),
+  disconnect: (id: string) => api.post(`/remotes/${id}/disconnect`),
+  updateStatus: (id: string, status: 'connected' | 'disconnected' | 'connecting') =>
+    api.patch(`/remotes/${id}/status`, { status }),
+  updateMetadata: (id: string, metadata: Record<string, any>) =>
+    api.patch(`/remotes/${id}/metadata`, { metadata }),
+  delete: (id: string) => api.delete(`/remotes/${id}`),
+};
+
+// Betaflight API
+export const betaflightAPI = {
+  uploadConfig: (droneId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('config', file);
+    return api.post(`/drones/${droneId}/betaflight/config`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getConfig: (droneId: string) => api.get(`/drones/${droneId}/betaflight/config`),
+  getConfigHistory: (droneId: string) => api.get(`/drones/${droneId}/betaflight/config/history`),
+  compareConfigs: (droneId: string, config1Id: string, config2Id: string) =>
+    api.post(`/drones/${droneId}/betaflight/config/compare`, { config1_id: config1Id, config2_id: config2Id }),
+  getRecommendations: (droneId: string) => api.get(`/drones/${droneId}/betaflight/recommendations`),
+  uploadBlackbox: (flightId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('blackbox', file);
+    return api.post(`/flights/${flightId}/blackbox`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getBlackboxAnalysis: (flightId: string) => api.get(`/flights/${flightId}/blackbox/analysis`),
+};
+
+// Advanced Analytics API
+export const advancedAnalyticsAPI = {
+  compareFlights: (flight1Id: string, flight2Id: string) =>
+    api.post('/analytics/flights/compare', { flight1_id: flight1Id, flight2_id: flight2Id }),
+  getAdvancedMetrics: (flightId: string) => api.get(`/analytics/flights/${flightId}/advanced`),
+  getTrends: (months?: number) => api.get('/analytics/trends', { params: { months } }),
+};
+
+// Sharing API
+export const sharingAPI = {
+  createFlightShare: (flightId: string, data?: { is_public?: boolean; expires_in_days?: number }) =>
+    api.post(`/flights/${flightId}/share`, data),
+  getSharedFlight: (token: string) => api.get(`/shared/flights/${token}`),
+  getMySharedFlights: () => api.get('/sharing/flights'),
+  deleteShare: (token: string) => api.delete(`/sharing/flights/${token}`),
+  getAchievements: () => api.get('/achievements'),
+  checkAchievements: () => api.post('/achievements/check'),
+  updatePublicProfile: (data: { is_public?: boolean; profile_bio?: string; profile_avatar_url?: string }) =>
+    api.patch('/profile/public', data),
+  getPublicProfile: (userId: string) => api.get(`/users/${userId}/public`),
+};
+
+// Weather API
+export const weatherAPI = {
+  getWeather: (lat: number, lon: number, timestamp?: string) =>
+    api.get('/weather', { params: { lat, lon, timestamp } }),
 };
 
 export default api;

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { dronesAPI } from '@/lib/api';
 import { Drone } from '@/types';
+import Navbar from '@/components/Navbar';
+import FadeIn from '@/components/FadeIn';
 
 export default function DronesPage() {
   const router = useRouter();
@@ -78,27 +80,7 @@ export default function DronesPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="glass-strong sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold gradient-text">FLYON</Link>
-            <div className="flex gap-6">
-              <Link href="/dashboard" className="text-white/90 hover:text-white transition-smooth relative group">
-                Dashboard
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/drones" className="text-white font-semibold relative group">
-                Drones
-                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-400"></span>
-              </Link>
-              <Link href="/flights" className="text-white/90 hover:text-white transition-smooth relative group">
-                Flights
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -151,6 +133,12 @@ export default function DronesPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
+                  <Link
+                    href={`/drones/${drone.id}/betaflight`}
+                    className="px-3 py-1 text-sm bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg hover:bg-purple-500/30 transition-smooth"
+                  >
+                    Betaflight
+                  </Link>
                   <button
                     onClick={() => handleDelete(drone.id)}
                     className="px-3 py-1 text-sm bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-smooth"

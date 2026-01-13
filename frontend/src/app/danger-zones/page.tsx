@@ -6,6 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { dangerZonesAPI } from '@/lib/api';
 import { DangerZone } from '@/types';
+import Navbar from '@/components/Navbar';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 
@@ -82,27 +83,7 @@ export default function DangerZonesPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="glass-strong sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold gradient-text">FLYON</Link>
-            <div className="flex gap-6">
-              <Link href="/dashboard" className="text-white/90 hover:text-white transition-smooth relative group">
-                Dashboard
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/drones" className="text-white/90 hover:text-white transition-smooth relative group">
-                Drones
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/flights" className="text-white/90 hover:text-white transition-smooth relative group">
-                Flights
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">

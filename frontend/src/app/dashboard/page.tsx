@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authAPI, flightsAPI, dronesAPI } from '@/lib/api';
+import { authAPI, flightsAPI, dronesAPI, sharingAPI } from '@/lib/api';
 import { Flight, Drone } from '@/types';
 import FadeIn from '@/components/FadeIn';
+import Navbar from '@/components/Navbar';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [drones, setDrones] = useState<Drone[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,10 +23,11 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       // Load data in parallel with timeout protection
-      const [userRes, flightsRes, dronesRes] = await Promise.allSettled([
+      const [userRes, flightsRes, dronesRes, achievementsRes] = await Promise.allSettled([
         authAPI.getMe(),
         flightsAPI.getAll({ limit: 10 }),
         dronesAPI.getAll(),
+        sharingAPI.getAchievements(),
       ]);
 
       // Handle user data
@@ -51,6 +54,21 @@ export default function DashboardPage() {
         console.error('Failed to load drones:', dronesRes.reason);
         setDrones([]);
       }
+
+      // Handle achievements data (non-critical, can fail)
+      if (achievementsRes.status === 'fulfilled') {
+        setAchievements(achievementsRes.value.data);
+      } else {
+        console.error('Failed to load achievements:', achievementsRes.reason);
+        setAchievements([]);
+      }
+
+      // Check for new achievements
+      try {
+        await sharingAPI.checkAchievements();
+      } catch (err) {
+        // Silent fail
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
       // Don't redirect on error, just show empty state
@@ -59,49 +77,9 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
-  };
-
   return (
     <div className="min-h-screen">
-      <nav className="glass-strong sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold gradient-text">FLYON</Link>
-            <div className="flex gap-6 items-center">
-              <Link 
-                href="/dashboard" 
-                className="text-white font-semibold relative group"
-              >
-                Dashboard
-                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-400"></span>
-              </Link>
-              <Link 
-                href="/drones" 
-                className="text-white/90 hover:text-white transition-smooth relative group"
-              >
-                Drones
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link 
-                href="/flights" 
-                className="text-white/90 hover:text-white transition-smooth relative group"
-              >
-                Flights
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 text-white/90 hover:text-white transition-smooth rounded-lg hover:bg-white/10"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8">
         {loading ? (
@@ -137,13 +115,37 @@ export default function DashboardPage() {
               </FadeIn>
               <FadeIn delay={300}>
                 <div className="glass-card rounded-xl p-6 hover-lift group cursor-pointer">
-                  <h3 className="text-lg font-semibold text-white/80 mb-2">Active Flights</h3>
+                  <h3 className="text-lg font-semibold text-white/80 mb-2">Achievements</h3>
                   <p className="text-4xl font-bold gradient-text inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">
-                    {flights.filter(f => f.status === 'active').length}
+                    {achievements.length}
                   </p>
                 </div>
               </FadeIn>
             </div>
+
+            {achievements.length > 0 && (
+              <FadeIn delay={400}>
+                <div className="glass-card rounded-xl p-6 mb-8">
+                  <h3 className="text-xl font-semibold text-white mb-4">Your Achievements</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {achievements.map((achievement) => (
+                      <div
+                        key={achievement.id}
+                        className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg text-center"
+                      >
+                        <div className="text-3xl mb-2">🏆</div>
+                        <p className="text-white text-sm font-semibold capitalize">
+                          {achievement.achievement_type.replace(/_/g, ' ')}
+                        </p>
+                        <p className="text-white/60 text-xs mt-1">
+                          {new Date(achievement.unlocked_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </FadeIn>
+            )}
           </>
         )}
 

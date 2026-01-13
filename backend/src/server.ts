@@ -13,6 +13,11 @@ import telemetryRoutes from './routes/telemetry';
 import dangerZoneRoutes from './routes/dangerZones';
 import analyticsRoutes from './routes/analytics';
 import exportRoutes from './routes/export';
+import remoteRoutes from './routes/remotes';
+import betaflightRoutes from './routes/betaflight';
+import sharingRoutes from './routes/sharing';
+import advancedAnalyticsRoutes from './routes/advancedAnalytics';
+import weatherRoutes from './routes/weather';
 import { autoCompleteInactiveFlights } from './services/flightAutoComplete';
 import { apiLimiter, authLimiter, uploadLimiter, telemetryLimiter } from './middleware/rateLimit';
 import { securityHeaders, sanitizeInput, securityMiddleware } from './middleware/security';
@@ -76,13 +81,21 @@ app.get('/metrics', (req, res) => {
 setupSwagger(app);
 
 // API routes with rate limiting
+// Note: More specific routes should be registered first
 app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes);
+app.use(`${API_PREFIX}/shared`, sharingRoutes); // Public shared routes (before auth)
+app.use(`${API_PREFIX}/users`, sharingRoutes); // Public user profiles
+app.use(`${API_PREFIX}/drones`, betaflightRoutes); // Betaflight routes (more specific, before general drones)
 app.use(`${API_PREFIX}/drones`, droneRoutes);
+app.use(`${API_PREFIX}/flights`, betaflightRoutes); // Betaflight routes (more specific, before general flights)
 app.use(`${API_PREFIX}/flights`, flightRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryLimiter, telemetryRoutes);
 app.use(`${API_PREFIX}/danger-zones`, dangerZoneRoutes);
-app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
+app.use(`${API_PREFIX}/analytics`, analyticsRoutes, advancedAnalyticsRoutes);
 app.use(`${API_PREFIX}/export`, uploadLimiter, exportRoutes);
+app.use(`${API_PREFIX}/remotes`, remoteRoutes);
+app.use(`${API_PREFIX}/sharing`, sharingRoutes);
+app.use(`${API_PREFIX}/weather`, weatherRoutes);
 
 // Error handler
 app.use(errorHandler);

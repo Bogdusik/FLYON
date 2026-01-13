@@ -4,12 +4,13 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { flightsAPI, analyticsAPI, exportAPI } from '@/lib/api';
+import { flightsAPI, analyticsAPI, exportAPI, sharingAPI, advancedAnalyticsAPI } from '@/lib/api';
 import { Flight, Telemetry, HealthScore } from '@/types';
 import { getWebSocketClient } from '@/lib/websocket';
 import TelemetryGraphs from '@/components/TelemetryGraphs';
 import { showDangerZoneWarning, requestNotificationPermission } from '@/utils/notifications';
 import { parsePosition } from '@/utils/position';
+import Navbar from '@/components/Navbar';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 
@@ -27,6 +28,9 @@ export default function FlightDetailPage() {
   const [isLive, setIsLive] = useState(false);
   const [statsCalculating, setStatsCalculating] = useState(false);
   const [statsStartTime, setStatsStartTime] = useState<number | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [advancedMetrics, setAdvancedMetrics] = useState<any>(null);
   const wsClientRef = useRef<any>(null);
   const telemetryHandlersRef = useRef<Map<string, (data: any) => void>>(new Map());
   const statsPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -82,6 +86,15 @@ export default function FlightDetailPage() {
         }
       } else if (flightData.health_score) {
         setHealthScore(flightData.health_score);
+      }
+
+      // Load advanced metrics
+      try {
+        const metricsRes = await advancedAnalyticsAPI.getAdvancedMetrics(flightId);
+        setAdvancedMetrics(metricsRes.data);
+      } catch (err) {
+        // Advanced metrics are optional
+        console.log('Advanced metrics not available');
       }
     } catch (error) {
       console.error('Failed to load flight data:', error);
@@ -318,23 +331,7 @@ export default function FlightDetailPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="glass-strong sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold gradient-text">FLYON</Link>
-            <div className="flex gap-6">
-              <Link href="/dashboard" className="text-white/90 hover:text-white transition-smooth relative group">
-                Dashboard
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/flights" className="text-white/90 hover:text-white transition-smooth relative group">
-                Flights
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -421,6 +418,31 @@ export default function FlightDetailPage() {
                 className="px-4 py-2 glass text-white/90 rounded-lg hover:bg-white/10 transition-smooth"
               >
                 Export GPX
+              </button>
+              <button
+                onClick={async () => {
+                  if (shareLink) {
+                    navigator.clipboard.writeText(`${window.location.origin}${shareLink}`);
+                    alert('Share link copied to clipboard!');
+                    return;
+                  }
+                  setSharing(true);
+                  try {
+                    const res = await sharingAPI.createFlightShare(flightId);
+                    const fullUrl = `${window.location.origin}${res.data.share_url}`;
+                    setShareLink(res.data.share_url);
+                    navigator.clipboard.writeText(fullUrl);
+                    alert('Share link created and copied to clipboard!');
+                  } catch (err: any) {
+                    alert(err.response?.data?.error || 'Failed to create share link');
+                  } finally {
+                    setSharing(false);
+                  }
+                }}
+                disabled={sharing}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50"
+              >
+                {sharing ? 'Sharing...' : shareLink ? 'Copy Share Link' : 'Share Flight'}
               </button>
             </div>
           </div>
@@ -621,6 +643,35 @@ export default function FlightDetailPage() {
             );
           })()}
         </div>
+
+        {advancedMetrics && (
+          <div className="mb-6 glass-card rounded-xl p-6">
+            <h2 className="text-xl font-semibold mb-4 text-white">Advanced Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <h3 className="text-white/80 text-sm mb-2">G-Force</h3>
+                <p className="text-white text-lg font-semibold">
+                  Max: {advancedMetrics.gforce?.max?.toFixed(2) || 'N/A'}G
+                </p>
+                <p className="text-white/60 text-sm">
+                  Avg: {advancedMetrics.gforce?.average?.toFixed(2) || 'N/A'}G
+                </p>
+              </div>
+              <div>
+                <h3 className="text-white/80 text-sm mb-2">Maneuvers</h3>
+                <p className="text-white text-lg font-semibold">
+                  {advancedMetrics.maneuvers?.length || 0} detected
+                </p>
+              </div>
+              <div>
+                <h3 className="text-white/80 text-sm mb-2">Battery Efficiency</h3>
+                <p className="text-white text-lg font-semibold">
+                  {advancedMetrics.battery_efficiency?.efficiency_score?.toFixed(0) || 'N/A'}%
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {telemetry.length > 0 && (
           <div className="mb-6">
