@@ -120,7 +120,7 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
  */
 export async function getUserById(userId: string): Promise<User | null> {
   const result = await query(
-    'SELECT id, email, name, created_at, updated_at, last_login, is_active FROM users WHERE id = $1',
+    'SELECT id, email, name, phone, avatar_url, created_at, updated_at, last_login, is_active FROM users WHERE id = $1',
     [userId]
   );
 
@@ -134,7 +134,10 @@ export async function getUserById(userId: string): Promise<User | null> {
 /**
  * Update user profile
  */
-export async function updateUser(userId: string, updates: { name?: string }): Promise<User> {
+export async function updateUser(
+  userId: string,
+  updates: { name?: string; phone?: string; avatar_url?: string }
+): Promise<User> {
   const fields: string[] = [];
   const values: any[] = [];
   let paramIndex = 1;
@@ -142,6 +145,16 @@ export async function updateUser(userId: string, updates: { name?: string }): Pr
   if (updates.name !== undefined) {
     fields.push(`name = $${paramIndex++}`);
     values.push(updates.name);
+  }
+
+  if (updates.phone !== undefined) {
+    fields.push(`phone = $${paramIndex++}`);
+    values.push(updates.phone || null);
+  }
+
+  if (updates.avatar_url !== undefined) {
+    fields.push(`avatar_url = $${paramIndex++}`);
+    values.push(updates.avatar_url || null);
   }
 
   if (fields.length === 0) {
@@ -152,7 +165,7 @@ export async function updateUser(userId: string, updates: { name?: string }): Pr
 
   const result = await query(
     `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
-     RETURNING id, email, name, created_at, updated_at, last_login, is_active`,
+     RETURNING id, email, name, phone, avatar_url, created_at, updated_at, last_login, is_active`,
     values
   );
 

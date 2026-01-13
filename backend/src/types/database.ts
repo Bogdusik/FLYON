@@ -8,6 +8,8 @@ export interface User {
   email: string;
   password_hash: string;
   name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
   created_at: Date;
   updated_at: Date;
   last_login: Date | null;

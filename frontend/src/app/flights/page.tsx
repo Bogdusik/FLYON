@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { flightsAPI } from '@/lib/api';
 import { Flight } from '@/types';
 import FadeIn from '@/components/FadeIn';
+import Navbar from '@/components/Navbar';
 
 export default function FlightsPage() {
   const router = useRouter();
@@ -45,27 +46,7 @@ export default function FlightsPage() {
 
   return (
     <div className="min-h-screen">
-      <nav className="glass-strong sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-2xl font-bold gradient-text">FLYON</Link>
-            <div className="flex gap-6">
-              <Link href="/dashboard" className="text-white/90 hover:text-white transition-smooth relative group">
-                Dashboard
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/drones" className="text-white/90 hover:text-white transition-smooth relative group">
-                Drones
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all group-hover:w-full"></span>
-              </Link>
-              <Link href="/flights" className="text-white font-semibold relative group">
-                Flights
-                <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-blue-400"></span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -155,18 +136,18 @@ export default function FlightsPage() {
                         {new Date(flight.started_at).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-sm text-white/70">
-                        {flight.duration_seconds
+                        {flight.duration_seconds && typeof flight.duration_seconds === 'number'
                           ? `${Math.floor(flight.duration_seconds / 60)}m ${flight.duration_seconds % 60}s`
                           : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-white/70">
-                        {flight.total_distance_meters
+                        {flight.total_distance_meters && typeof flight.total_distance_meters === 'number'
                           ? `${(flight.total_distance_meters / 1000).toFixed(2)} km`
                           : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-white/70">
-                        {flight.max_altitude_meters
-                          ? `${flight.max_altitude_meters.toFixed(1)} m`
+                        {flight.max_altitude_meters && typeof flight.max_altitude_meters === 'number'
+                          ? `${Number(flight.max_altitude_meters).toFixed(1)} m`
                           : '-'}
                       </td>
                       <td className="px-6 py-4 text-sm">

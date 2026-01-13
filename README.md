@@ -25,14 +25,25 @@ FLYON/
 
 ## Features
 
-- User authentication and drone management
+### Core Features
+- User authentication and profile management
+- Drone management with device tokens
 - Real-time flight tracking with live map
-- Telemetry ingestion (log upload, live bridge, companion computer)
+- Telemetry ingestion (log upload, live bridge, RadioMaster Pocket)
 - Danger zone warnings and safety assistant
 - Post-flight analysis and Flight Health Score
 - Flight replay with timeline visualization
 - Analytics dashboard and flight history
 - GDPR-compliant data export and deletion
+
+### Advanced Features
+- **Betaflight Integration** - Config management, PID tuning, Blackbox analysis
+- **Advanced Analytics** - G-force analysis, maneuver detection, flight comparison
+- **Social Features** - Flight sharing, achievements, public profiles
+- **RadioMaster Pocket** - USB Serial integration for transmitter data
+- **Weather API** - Flight condition monitoring (ready for integration)
+
+**See [docs/FEATURES.md](./docs/FEATURES.md) for complete feature list.**
 
 ## Getting Started
 
@@ -44,10 +55,7 @@ FLYON/
 
 ### Quick Start
 
-For detailed setup instructions, see:
-- **[docs/QUICKSTART.md](./docs/QUICKSTART.md)** - Step-by-step setup guide
-- **[docs/SETUP.md](./docs/SETUP.md)** - Detailed setup and troubleshooting
-- **[docs/README.md](./docs/README.md)** - Complete documentation index
+**For complete setup guide, see [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md)**
 
 **Quick commands:**
 
@@ -58,11 +66,11 @@ For detailed setup instructions, see:
 5. Start frontend: `cd frontend && npm run dev` (Terminal 2)
 6. Open: http://localhost:3000
 
-**Note:** Make sure to create `.env` file in `backend/` and `.env.local` in `frontend/` directories. See [docs/QUICKSTART.md](./docs/QUICKSTART.md) for configuration details.
+**Note:** Make sure to create `.env` file in `backend/` and `.env.local` in `frontend/` directories. See [docs/GETTING_STARTED.md](./docs/GETTING_STARTED.md) for configuration details.
 
 **Quick scripts:** Use `./scripts/start-all.sh` to start everything automatically.
 
-**Testing Guide:** See [docs/TESTING_GUIDE.md](./docs/TESTING_GUIDE.md) for detailed testing instructions.
+**Documentation:** See [docs/README.md](./docs/README.md) for complete documentation index.
 
 ### Database Migrations
 
@@ -74,21 +82,13 @@ npm run migrate
 
 ### Telemetry Input Methods
 
-FLYON supports three telemetry input methods:
+FLYON supports multiple telemetry input methods:
 
-1. **Log-based Upload (MVP-ready)**
-   - Upload flight logs via API
-   - Backend parses and creates flights + telemetry points
-
-2. **Live Telemetry via Ground Bridge**
-   - External application reads telemetry (MAVLink, etc.)
-   - Converts to FLYON JSON format
-   - Sends to backend via HTTPS or WebSocket
-
-3. **Onboard Companion Computer (Future-ready)**
-   - Companion computer reads from flight controller
-   - Sends signed telemetry packets directly to backend
-   - Supports offline buffering and retry
+1. **Log Upload** - CSV, JSON files via web interface
+2. **Live Bridge** - MAVLink → FLYON via ground bridge
+3. **RadioMaster Pocket** - USB Serial connection for transmitter data
+4. **Betaflight Blackbox** - Upload and analyze .bbl logs
+5. **Companion Computer** - Onboard telemetry (future)
 
 ### API Endpoints
 

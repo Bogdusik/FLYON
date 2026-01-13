@@ -40,6 +40,8 @@ router.get('/me', authenticateUser, asyncHandler(async (req, res) => {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone,
+    avatar_url: user.avatar_url,
     created_at: user.created_at,
     last_login: user.last_login,
   });
@@ -51,12 +53,14 @@ router.get('/me', authenticateUser, asyncHandler(async (req, res) => {
  */
 router.patch('/me', authenticateUser, asyncHandler(async (req, res) => {
   const userId = (req as any).user.id;
-  const { name } = req.body;
-  const user = await updateUser(userId, { name });
+  const { name, phone, avatar_url } = req.body;
+  const user = await updateUser(userId, { name, phone, avatar_url });
   res.json({
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone,
+    avatar_url: user.avatar_url,
     created_at: user.created_at,
     updated_at: user.updated_at,
   });

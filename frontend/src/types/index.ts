@@ -6,6 +6,8 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
   created_at: string;
   last_login: string | null;
 }
@@ -93,4 +95,16 @@ export interface RiskEvent {
   severity: 'info' | 'warning' | 'critical';
   description: string;
   metadata: Record<string, any>;
+}
+
+export interface Remote {
+  id: string;
+  type: 'radiomaster';
+  name: string;
+  model: string | null;
+  status: 'connected' | 'disconnected' | 'connecting';
+  last_connected: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
 }
