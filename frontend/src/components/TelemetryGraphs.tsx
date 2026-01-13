@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import {
   LineChart,
   Line,
@@ -21,7 +21,7 @@ interface TelemetryGraphsProps {
 // Maximum points to display on graphs for performance
 const MAX_GRAPH_POINTS = 1000;
 
-export default function TelemetryGraphs({ telemetry }: TelemetryGraphsProps) {
+function TelemetryGraphs({ telemetry }: TelemetryGraphsProps) {
   const chartData = useMemo(() => {
     // Limit points for performance - sample if too many
     let dataToProcess = telemetry;
@@ -167,4 +167,6 @@ export default function TelemetryGraphs({ telemetry }: TelemetryGraphsProps) {
     </div>
   );
 }
+
+export default memo(TelemetryGraphs);
 

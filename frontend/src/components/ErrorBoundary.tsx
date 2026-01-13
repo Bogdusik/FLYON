@@ -50,7 +50,12 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-smooth"
+              className="btn-dji btn-dji-sm"
+              style={{
+                background: 'rgba(59, 130, 246, 0.15)',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+                color: 'rgba(147, 197, 253, 0.9)',
+              }}
             >
               Reload Page
             </button>

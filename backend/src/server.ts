@@ -1,11 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
-import dotenv from 'dotenv';
 import { testConnection } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { wsServer } from './websocket';
 import logger from './utils/logger';
+import env from './config/env';
 import authRoutes from './routes/auth';
 import droneRoutes from './routes/drones';
 import flightRoutes from './routes/flights';
@@ -16,19 +16,32 @@ import exportRoutes from './routes/export';
 import remoteRoutes from './routes/remotes';
 import betaflightRoutes from './routes/betaflight';
 import sharingRoutes from './routes/sharing';
+import achievementsRoutes from './routes/achievements';
 import advancedAnalyticsRoutes from './routes/advancedAnalytics';
 import weatherRoutes from './routes/weather';
+import healthRoutes from './routes/health';
+import metricsRoutes from './routes/metrics';
 import { autoCompleteInactiveFlights } from './services/flightAutoComplete';
 import { apiLimiter, authLimiter, uploadLimiter, telemetryLimiter } from './middleware/rateLimit';
 import { securityHeaders, sanitizeInput, securityMiddleware } from './middleware/security';
 import { setupSwagger } from './config/swagger';
 import { monitoringMiddleware, getMetrics } from './middleware/monitoring';
-
-dotenv.config();
+import { correlationIdMiddleware } from './middleware/correlationId';
+import { getRedisClient } from './config/redis';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const API_PREFIX = process.env.API_PREFIX || '/api/v1';
+const PORT = env.port;
+const API_PREFIX = env.apiPrefix;
+
+// Initialize Redis connection (optional)
+if (env.redis) {
+  getRedisClient()?.connect().catch((error) => {
+    logger.warn('Redis connection failed, continuing without cache', { error: error.message });
+  });
+}
+
+// Correlation ID middleware (must be first for tracing)
+app.use(correlationIdMiddleware);
 
 // Security middleware (must be first)
 app.use(securityHeaders);
@@ -40,7 +53,7 @@ app.use(compression());
 
 // CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: env.corsOrigin,
   credentials: true,
 }));
 
@@ -54,28 +67,11 @@ app.use(monitoringMiddleware);
 // Rate limiting (apply to all API routes)
 app.use(`${API_PREFIX}`, apiLimiter);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-  });
-});
+// Health check routes
+app.use('/health', healthRoutes);
 
-// Metrics endpoint (for monitoring)
-app.get('/metrics', (req, res) => {
-  const metrics = getMetrics();
-  res.json({
-    ...metrics,
-    system: {
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      cpu: process.cpuUsage(),
-    },
-  });
-});
+// Metrics endpoint (for monitoring) - requires authentication
+app.use('/metrics', metricsRoutes);
 
 // Swagger API documentation
 setupSwagger(app);
@@ -95,6 +91,7 @@ app.use(`${API_PREFIX}/analytics`, analyticsRoutes, advancedAnalyticsRoutes);
 app.use(`${API_PREFIX}/export`, uploadLimiter, exportRoutes);
 app.use(`${API_PREFIX}/remotes`, remoteRoutes);
 app.use(`${API_PREFIX}/sharing`, sharingRoutes);
+app.use(`${API_PREFIX}/achievements`, achievementsRoutes);
 app.use(`${API_PREFIX}/weather`, weatherRoutes);
 
 // Error handler
@@ -109,7 +106,7 @@ async function start() {
     app.listen(PORT, () => {
       logger.info(`🚀 FLYON API server running on port ${PORT}`);
       logger.info(`📡 API prefix: ${API_PREFIX}`);
-      logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🌍 Environment: ${env.nodeEnv}`);
       
       // Auto-complete inactive flights every 5 minutes
       setInterval(async () => {

@@ -30,6 +30,21 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle rate limiting (429) - don't crash the app
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.data?.retryAfter || 900; // Default 15 minutes
+      console.warn(`Rate limit exceeded. Retry after ${retryAfter} seconds.`);
+      
+      // Return a controlled error that won't break the app
+      // Components should handle this gracefully
+      return Promise.reject({
+        ...error,
+        isRateLimit: true,
+        retryAfter,
+        message: error.response.data?.error || 'Too many requests. Please try again later.',
+      });
+    }
+    
     // Handle authentication errors
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
@@ -41,12 +56,27 @@ api.interceptors.response.use(
     // Handle network errors
     if (!error.response) {
       console.error('Network error:', error.message);
-      // Could show a toast notification here
+      if (typeof window !== 'undefined') {
+        // Dynamic import for toast to avoid SSR issues
+        import('@/components/Toast').then(({ toast }) => {
+          toast.error('Network error. Please check your connection.');
+        }).catch(() => {
+          // Silently fail if toast is not available
+        });
+      }
     }
     
     // Handle server errors (500+)
     if (error.response?.status >= 500) {
       console.error('Server error:', error.response.data);
+      if (typeof window !== 'undefined') {
+        // Dynamic import for toast to avoid SSR issues
+        import('@/components/Toast').then(({ toast }) => {
+          toast.error('Server error. Please try again later.');
+        }).catch(() => {
+          // Silently fail if toast is not available
+        });
+      }
     }
     
     return Promise.reject(error);

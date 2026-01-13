@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { verifyToken } from '../utils/auth';
 import { query } from '../config/database';
 import logger from '../utils/logger';
+import env from '../config/env';
 
 /**
  * WebSocket server for real-time telemetry updates
@@ -150,6 +151,7 @@ class FlightWebSocketServer {
 
   /**
    * Broadcast telemetry update to all clients subscribed to the flight
+   * Optimized: batches messages and filters closed connections
    */
   public broadcastTelemetry(flightId: string, telemetry: any) {
     const message = JSON.stringify({
@@ -158,17 +160,28 @@ class FlightWebSocketServer {
       data: telemetry,
     });
 
+    // Collect all valid connections first (optimization)
+    const validConnections: WebSocket[] = [];
     for (const [ws, connection] of this.clients.entries()) {
-      if (connection.subscribedFlights.has(flightId)) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(message);
-        }
+      if (connection.subscribedFlights.has(flightId) && ws.readyState === WebSocket.OPEN) {
+        validConnections.push(ws);
+      }
+    }
+
+    // Batch send to all valid connections
+    for (const ws of validConnections) {
+      try {
+        ws.send(message);
+      } catch (error) {
+        // Remove connection if send fails
+        this.clients.delete(ws);
       }
     }
   }
 
   /**
    * Broadcast flight status update
+   * Optimized: batches messages and filters closed connections
    */
   public broadcastFlightUpdate(flightId: string, update: any) {
     const message = JSON.stringify({
@@ -177,17 +190,28 @@ class FlightWebSocketServer {
       data: update,
     });
 
+    // Collect all valid connections first (optimization)
+    const validConnections: WebSocket[] = [];
     for (const [ws, connection] of this.clients.entries()) {
-      if (connection.subscribedFlights.has(flightId)) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(message);
-        }
+      if (connection.subscribedFlights.has(flightId) && ws.readyState === WebSocket.OPEN) {
+        validConnections.push(ws);
+      }
+    }
+
+    // Batch send to all valid connections
+    for (const ws of validConnections) {
+      try {
+        ws.send(message);
+      } catch (error) {
+        // Remove connection if send fails
+        this.clients.delete(ws);
       }
     }
   }
 
   /**
    * Broadcast danger zone warning
+   * Optimized: batches messages and filters closed connections
    */
   public broadcastWarning(userId: string, warning: any) {
     const message = JSON.stringify({
@@ -195,17 +219,58 @@ class FlightWebSocketServer {
       data: warning,
     });
 
+    // Collect all valid connections first (optimization)
+    const validConnections: WebSocket[] = [];
     for (const [ws, connection] of this.clients.entries()) {
       if (connection.userId === userId && ws.readyState === WebSocket.OPEN) {
+        validConnections.push(ws);
+      }
+    }
+
+    // Batch send to all valid connections
+    for (const ws of validConnections) {
+      try {
         ws.send(message);
+      } catch (error) {
+        // Remove connection if send fails
+        this.clients.delete(ws);
+      }
+    }
+  }
+
+  /**
+   * Broadcast RTH (Return to Home) command
+   * Optimized: batches messages and filters closed connections
+   */
+  public broadcastRTHCommand(flightId: string, command: any) {
+    const message = JSON.stringify({
+      type: 'rth_command',
+      flight_id: flightId,
+      data: command,
+    });
+
+    // Collect all valid connections first (optimization)
+    const validConnections: WebSocket[] = [];
+    for (const [ws, connection] of this.clients.entries()) {
+      if (connection.subscribedFlights.has(flightId) && ws.readyState === WebSocket.OPEN) {
+        validConnections.push(ws);
+      }
+    }
+
+    // Batch send to all valid connections
+    for (const ws of validConnections) {
+      try {
+        ws.send(message);
+      } catch (error) {
+        // Remove connection if send fails
+        this.clients.delete(ws);
       }
     }
   }
 }
 
 // Create singleton instance
-const WS_PORT = parseInt(process.env.WS_PORT || '3002');
-export const wsServer = new FlightWebSocketServer(WS_PORT);
+export const wsServer = new FlightWebSocketServer(env.wsPort);
 
 // Export function to broadcast from other modules
 export function broadcastTelemetry(flightId: string, telemetry: any) {
@@ -218,4 +283,8 @@ export function broadcastFlightUpdate(flightId: string, update: any) {
 
 export function broadcastWarning(userId: string, warning: any) {
   wsServer.broadcastWarning(userId, warning);
+}
+
+export function broadcastRTHCommand(flightId: string, command: any) {
+  wsServer.broadcastRTHCommand(flightId, command);
 }

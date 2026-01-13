@@ -3,4 +3,4 @@
  * Import this in server.ts to start the WebSocket server
  */
 
-export { wsServer, broadcastTelemetry, broadcastFlightUpdate, broadcastWarning } from './server';
+export { wsServer, broadcastTelemetry, broadcastFlightUpdate, broadcastWarning, broadcastRTHCommand } from './server';

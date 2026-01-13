@@ -1,5 +1,5 @@
 import { query } from '../config/database';
-import { Flight, Telemetry } from '../types/database';
+import { Telemetry } from '../types/database';
 
 /**
  * Export service for KML/GPX export

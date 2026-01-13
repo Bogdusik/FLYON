@@ -359,19 +359,22 @@ export async function calculateHealthScore(
     (riskExposure * 0.3)
   );
 
-  // Update flight health score
-  await query(
-    'UPDATE flights SET health_score = $1 WHERE id = $2',
-    [overall, flightId]
-  );
-
-  return {
+  // Create health score object
+  const healthScore = {
     safety: Math.round(safety),
     smoothness: Math.round(smoothness),
     battery_efficiency: Math.round(batteryEfficiency),
     risk_exposure: Math.round(riskExposure),
     overall,
   };
+
+  // Update flight health score (save as JSONB object)
+  await query(
+    'UPDATE flights SET health_score = $1::jsonb WHERE id = $2',
+    [JSON.stringify(healthScore), flightId]
+  );
+
+  return healthScore;
 }
 
 /**

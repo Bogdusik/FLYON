@@ -4,6 +4,7 @@ import { TelemetryInput } from '../types/database';
 import { getFlightBySessionId } from './flightService';
 import { broadcastTelemetry, broadcastWarning } from '../websocket';
 import { validateTelemetryInput } from '../validators/telemetry';
+import { calculateRTH, triggerRTH } from './rthService';
 import logger from '../utils/logger';
 
 /**
@@ -31,14 +32,18 @@ export async function ingestTelemetry(
   const sessionId = validated.session_id || `session_${droneId}_${Date.now()}`;
   
   let flight = await getFlightBySessionId(sessionId, userId);
+  if (!flight) {
+    throw new Error('Flight not found');
+  }
   
   if (!flight) {
-    // Create new flight session
+    // Create new flight session with start position
+    const startPosition = createPoint(validated.latitude, validated.longitude);
     const flightResult = await query(
-      `INSERT INTO flights (drone_id, user_id, session_id, started_at, status)
-       VALUES ($1, $2, $3, $4, 'active')
+      `INSERT INTO flights (drone_id, user_id, session_id, started_at, status, start_position)
+       VALUES ($1, $2, $3, $4, 'active', ST_GeomFromText($5, 4326))
        RETURNING id`,
-      [droneId, userId, sessionId, timestamp]
+      [droneId, userId, sessionId, timestamp, startPosition]
     );
     flight = { id: flightResult.rows[0].id } as any;
   }
@@ -91,6 +96,79 @@ export async function ingestTelemetry(
   checkDangerZones(flight.id, validated.latitude, validated.longitude, validated.altitude, userId).catch((error) => {
     logger.error('Failed to check danger zones', { flightId: flight.id, error: error.message });
   });
+
+  // Check battery level and trigger RTH if needed (async, non-blocking)
+  checkBatteryAndRTH(
+    flight.id,
+    droneId,
+    userId,
+    validated.latitude,
+    validated.longitude,
+    validated.battery,
+    validated.speed || 0,
+    validated.heading || null,
+    validated.altitude
+  ).catch((error) => {
+    logger.error('Failed to check battery and RTH', { flightId: flight.id, error: error.message });
+  });
+}
+
+/**
+ * Check battery level and trigger RTH if needed
+ */
+async function checkBatteryAndRTH(
+  flightId: string,
+  droneId: string,
+  userId: string,
+  latitude: number,
+  longitude: number,
+  battery: number,
+  speed: number,
+  heading: number | null,
+  altitude: number
+): Promise<void> {
+  try {
+    // Only check if battery is below 30% (to avoid constant checks)
+    if (battery > 30) {
+      return;
+    }
+
+    const rthCalculation = await calculateRTH(
+      flightId,
+      latitude,
+      longitude,
+      battery,
+      speed,
+      heading,
+      altitude
+    );
+
+    // Broadcast warning if battery is getting low
+    if (rthCalculation.urgency === 'medium' || rthCalculation.urgency === 'high' || rthCalculation.urgency === 'critical') {
+      broadcastWarning(userId, {
+        type: 'battery_warning',
+        flight_id: flightId,
+        message: rthCalculation.message,
+        urgency: rthCalculation.urgency,
+        battery: battery,
+        battery_margin: rthCalculation.batteryMargin,
+        distance_to_home: rthCalculation.distanceToHome,
+        estimated_time_to_home: rthCalculation.estimatedTimeToHome,
+      });
+    }
+
+    // Trigger automatic RTH if critical or high urgency
+    if (rthCalculation.shouldReturn && (rthCalculation.urgency === 'critical' || rthCalculation.urgency === 'high')) {
+      await triggerRTH(
+        flightId,
+        droneId,
+        rthCalculation.message
+      );
+    }
+  } catch (error: any) {
+    // Don't throw - this is a safety feature, shouldn't break telemetry ingestion
+    logger.error('Error in battery/RTH check', { flightId, error: error.message });
+  }
 }
 
 /**
@@ -357,11 +435,12 @@ export async function batchIngestTelemetry(
   if (!flight) {
     const firstPoint = points[0];
     const timestamp = firstPoint.timestamp ? new Date(firstPoint.timestamp) : new Date();
+    const startPosition = createPoint(firstPoint.latitude, firstPoint.longitude);
     const flightResult = await query(
-      `INSERT INTO flights (drone_id, user_id, session_id, started_at, status)
-       VALUES ($1, $2, $3, $4, 'active')
+      `INSERT INTO flights (drone_id, user_id, session_id, started_at, status, start_position)
+       VALUES ($1, $2, $3, $4, 'active', ST_GeomFromText($5, 4326))
        RETURNING id`,
-      [droneId, userId, sessionId, timestamp]
+      [droneId, userId, sessionId, timestamp, startPosition]
     );
     flight = { id: flightResult.rows[0].id } as any;
   }
@@ -414,6 +493,6 @@ export async function batchIngestTelemetry(
   ];
 
   for (const point of checkPoints) {
-    await checkDangerZones(flight.id, point.latitude, point.longitude, point.altitude);
+    await checkDangerZones(flight.id, point.latitude, point.longitude, point.altitude, userId);
   }
 }

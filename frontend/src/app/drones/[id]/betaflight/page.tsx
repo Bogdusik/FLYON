@@ -3,9 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import FadeIn from '@/components/FadeIn';
 import { betaflightAPI } from '@/lib/api';
+import { toast } from '@/components/Toast';
+
+// Lazy load heavy components
+const BetaflightConfigEditor = dynamic(() => import('@/components/BetaflightConfigEditor'), {
+  loading: () => <div className="text-white/50">Loading editor...</div>,
+  ssr: false,
+});
 
 export default function BetaflightPage() {
   const params = useParams();
@@ -74,8 +82,8 @@ export default function BetaflightPage() {
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center text-white">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mb-4"></div>
-              Loading...
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/30 border-t-white mb-3"></div>
+              <div className="text-sm text-white/70">Loading...</div>
             </div>
           </div>
         </main>
@@ -88,17 +96,17 @@ export default function BetaflightPage() {
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <FadeIn>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <Link
                 href="/drones"
-                className="text-white/60 hover:text-white transition-smooth mb-2 inline-block"
+                className="text-white/60 hover:text-white transition-smooth mb-1.5 inline-block text-xs"
               >
                 ← Back to Drones
               </Link>
-              <h1 className="text-4xl font-bold text-white">Betaflight Configuration</h1>
+              <h1 className="text-xl font-medium text-white">Betaflight Configuration</h1>
             </div>
-            <label className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer disabled:opacity-50">
+            <label className="btn-dji btn-dji-sm cursor-pointer disabled:opacity-50 inline-block">
               {uploading ? 'Uploading...' : '+ Upload Config'}
               <input
                 type="file"
@@ -111,7 +119,7 @@ export default function BetaflightPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg">
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -131,9 +139,9 @@ export default function BetaflightPage() {
           )}
 
           {currentConfig ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">PID Settings</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="glass-card rounded-lg p-4">
+                <h2 className="text-base font-medium text-white mb-3">PID Settings</h2>
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-white/80 text-sm mb-2">Roll</h3>
@@ -162,8 +170,8 @@ export default function BetaflightPage() {
                 </div>
               </div>
 
-              <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Rates</h2>
+              <div className="glass-card rounded-lg p-4">
+                <h2 className="text-base font-medium text-white mb-3">Rates</h2>
                 <div className="space-y-2 text-white">
                   <div>Roll: {currentConfig.config?.rates?.roll || 'N/A'}</div>
                   <div>Pitch: {currentConfig.config?.rates?.pitch || 'N/A'}</div>
@@ -172,14 +180,14 @@ export default function BetaflightPage() {
               </div>
             </div>
           ) : (
-            <div className="glass-card rounded-xl p-12 text-center mb-8">
+            <div className="glass-card rounded-lg p-6 text-center mb-4">
               <p className="text-white/60 text-lg mb-4">No Betaflight configuration uploaded</p>
               <p className="text-white/40 text-sm">Upload a .diff or .dump file from Betaflight Configurator</p>
             </div>
           )}
 
           {configHistory.length > 0 && (
-            <div className="glass-card rounded-xl p-6">
+            <div className="glass-card rounded-lg p-4">
               <h2 className="text-xl font-semibold text-white mb-4">Configuration History</h2>
               <div className="space-y-2">
                 {configHistory.map((config, idx) => (
@@ -197,7 +205,12 @@ export default function BetaflightPage() {
                             // Compare with previous
                             betaflightAPI.compareConfigs(droneId, config.id, configHistory[idx - 1].id);
                           }}
-                          className="px-3 py-1 text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg hover:bg-blue-500/30"
+                          className="btn-dji btn-dji-sm"
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: 'rgba(59, 130, 246, 0.2)',
+                            color: 'rgba(147, 197, 253, 0.9)',
+                          }}
                         >
                           Compare
                         </button>

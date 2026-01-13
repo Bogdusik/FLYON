@@ -1,10 +1,11 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import env from '../config/env';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-const JWT_DEVICE_TOKEN_EXPIRES_IN = process.env.JWT_DEVICE_TOKEN_EXPIRES_IN || '365d';
+const JWT_SECRET = env.jwt.secret;
+const JWT_EXPIRES_IN = env.jwt.expiresIn;
+const JWT_DEVICE_TOKEN_EXPIRES_IN = env.jwt.deviceTokenExpiresIn;
 
 /**
  * Hash a password using bcrypt
@@ -27,7 +28,7 @@ export function generateUserToken(userId: string, email: string): string {
   return jwt.sign(
     { userId, email, type: 'user' },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN } as SignOptions
   );
 }
 
@@ -38,7 +39,7 @@ export function generateDeviceToken(droneId: string, userId: string): string {
   return jwt.sign(
     { droneId, userId, type: 'device' },
     JWT_SECRET,
-    { expiresIn: JWT_DEVICE_TOKEN_EXPIRES_IN }
+    { expiresIn: JWT_DEVICE_TOKEN_EXPIRES_IN } as SignOptions
   );
 }
 
