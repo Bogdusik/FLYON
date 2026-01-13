@@ -34,11 +34,11 @@ export default function SharedFlightPage() {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center text-white">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mb-4"></div>
-              Loading...
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/30 border-t-white mb-3"></div>
+              <div className="text-sm text-white/70">Loading...</div>
             </div>
           </div>
         </main>
@@ -50,12 +50,12 @@ export default function SharedFlightPage() {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-4">
           <div className="glass-card rounded-xl p-12 text-center">
             <p className="text-white/60 text-lg mb-4">{error || 'Shared flight not found'}</p>
             <Link
               href="/"
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all"
+              className="btn-dji btn-dji-sm"
             >
               Go to Home
             </Link>
@@ -70,23 +70,23 @@ export default function SharedFlightPage() {
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <FadeIn>
-          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-            <p className="text-blue-300 text-sm">
+          <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <p className="text-blue-300 text-xs">
               📤 This is a shared flight. View count: {flight.view_count || 0}
             </p>
           </div>
 
-          <div className="glass-card rounded-xl p-6 mb-6">
-            <h1 className="text-4xl font-bold text-white mb-4">Shared Flight</h1>
-            <p className="text-white/70">Session: {flight.session_id}</p>
-            <p className="text-white/60 text-sm mt-2">
+          <div className="glass-card rounded-lg p-3 mb-4 border border-white/10">
+            <h1 className="text-base font-medium text-white mb-2">Shared Flight</h1>
+            <p className="text-white/70 text-sm">Session: {flight.session_id}</p>
+            <p className="text-white/60 text-xs mt-1.5">
               Started: {new Date(flight.started_at).toLocaleString()}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4 text-white">Flight Info</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-card rounded-lg p-3 border border-white/10">
+              <h3 className="text-xs font-medium mb-2 text-white">Flight Info</h3>
               <div className="space-y-2 text-sm text-white/90">
                 <p><span className="font-medium">Status:</span> {flight.status}</p>
                 {flight.duration_seconds && (
@@ -98,8 +98,8 @@ export default function SharedFlightPage() {
               </div>
             </div>
 
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4 text-white">Statistics</h3>
+            <div className="glass-card rounded-lg p-4 border border-white/10">
+              <h3 className="text-sm font-medium mb-3 text-white">Statistics</h3>
               <div className="space-y-2 text-sm text-white/90">
                 {flight.max_altitude_meters && (
                   <p><span className="font-medium">Max Altitude:</span> {flight.max_altitude_meters.toFixed(1)} m</p>
@@ -113,11 +113,11 @@ export default function SharedFlightPage() {
               </div>
             </div>
 
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4 text-white">Actions</h3>
+            <div className="glass-card rounded-lg p-4 border border-white/10">
+              <h3 className="text-sm font-medium mb-3 text-white">Actions</h3>
               <Link
                 href={`/flights/${flight.id}`}
-                className="block w-full px-4 py-2 text-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all"
+                className="btn-dji btn-dji-sm w-full text-center block"
               >
                 View Full Details
               </Link>

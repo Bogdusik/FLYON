@@ -2,6 +2,7 @@ import express from 'express';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authenticateUser } from '../middleware/auth';
 import { upload } from '../middleware/upload';
+import logger from '../utils/logger';
 import {
   createFlight,
   getFlightById,
@@ -67,7 +68,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
       !flight.max_speed_mps && !flight.min_battery_percent) {
     // Trigger stats calculation asynchronously (don't wait)
     updateFlightStats(flight.id).catch((error) => {
-      console.error('Failed to calculate stats for completed flight:', error);
+      logger.error('Failed to calculate stats for completed flight', { error: error.message, flightId: flight.id });
     });
   }
   
@@ -90,7 +91,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   if (status === 'completed' || (flight.status === 'completed' && status === undefined)) {
     updateFlightStats(flight.id).catch((error) => {
       // Log error but don't fail the request
-      console.error('Failed to update flight stats:', error);
+      logger.error('Failed to update flight stats', { error: error.message, flightId: flight.id });
     });
   }
   

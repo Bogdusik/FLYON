@@ -69,7 +69,7 @@ export default function AnimatedDrone({ onComplete, variant = 'welcome' }: Anima
     >
       {/* Drone body */}
       <div className="relative">
-        {/* Main body - увеличен для лучшей видимости */}
+        {/* Main body - enlarged for better visibility */}
         <div
           className={`w-20 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-2xl ${
             stage === 'scanning' ? 'animate-pulse' : ''
@@ -80,7 +80,7 @@ export default function AnimatedDrone({ onComplete, variant = 'welcome' }: Anima
             transition: 'transform 0.3s ease',
           }}
         >
-          {/* Drone propellers - увеличены для видимости */}
+          {/* Drone propellers - enlarged for visibility */}
           <div className="absolute -top-3 -left-3 w-5 h-5 border-2 border-blue-300 rounded-full animate-spin" style={{ animationDuration: '0.1s', boxShadow: '0 0 10px rgba(147, 197, 253, 0.8)' }} />
           <div className="absolute -top-3 -right-3 w-5 h-5 border-2 border-blue-300 rounded-full animate-spin" style={{ animationDuration: '0.1s', boxShadow: '0 0 10px rgba(147, 197, 253, 0.8)' }} />
           <div className="absolute -bottom-3 -left-3 w-5 h-5 border-2 border-blue-300 rounded-full animate-spin" style={{ animationDuration: '0.1s', boxShadow: '0 0 10px rgba(147, 197, 253, 0.8)' }} />
@@ -95,7 +95,7 @@ export default function AnimatedDrone({ onComplete, variant = 'welcome' }: Anima
           )}
         </div>
 
-        {/* Glow effect - усилен для видимости */}
+        {/* Glow effect - enhanced for visibility */}
         <div
           className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-400 rounded-full blur-2xl opacity-70 ${
             stage === 'scanning' ? 'animate-pulse' : ''

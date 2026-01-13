@@ -1,6 +1,6 @@
 # FLYON Scripts
 
-Helper scripts for development and deployment.
+Helper scripts for development, deployment, and database management.
 
 ## Available Scripts
 
@@ -11,7 +11,20 @@ Helper scripts for development and deployment.
 - **`start-frontend.sh`** - Start frontend server only
 - **`start.sh`** - Quick start script
 - **`check-setup.sh`** - Verify setup and dependencies
-- **`quick_delete_flights.sh`** - Delete all flights from database (for testing)
+
+### Database Management
+
+- **`cleanup-database.sh`** - **Delete ALL flights, drones, and related data from database** ⚠️
+- **`cleanup-database.ts`** - TypeScript version of cleanup script (for non-Docker setups)
+- **`quick_delete_flights.sh`** - Quick delete flights only (legacy, use cleanup-database.sh instead)
+
+### Flight Simulation Scripts
+
+- **`simulate_15min_flight.py`** - Simulate a 15-minute real-time flight with RTH logic
+  - See [README_FLIGHT_SIMULATION.md](./README_FLIGHT_SIMULATION.md) for details
+- **`test_live_flight.py`** - Create a test flight for live view testing
+- **`test_live_flight.sh`** - Shell wrapper for test_live_flight.py
+- **`send_continuous_telemetry.py`** - Send continuous telemetry to keep a flight active
 
 ### Telemetry Scripts
 
@@ -28,13 +41,44 @@ Make scripts executable:
 chmod +x scripts/*.sh scripts/telemetry/*.sh
 ```
 
-Run a script:
+### Database Cleanup
+
+⚠️ **WARNING: This will permanently delete ALL data!**
+
+```bash
+# Using Docker (recommended)
+./scripts/cleanup-database.sh
+
+# Using TypeScript (for non-Docker setups)
+npx ts-node scripts/cleanup-database.ts
+```
+
+### Flight Simulation
+
+```bash
+# Simulate 15-minute flight
+python3 scripts/simulate_15min_flight.py
+
+# With custom device token
+python3 scripts/simulate_15min_flight.py YOUR_DEVICE_TOKEN
+```
+
+### Start Services
+
 ```bash
 ./scripts/start-all.sh
-./scripts/telemetry/send_flight_path.py
 ```
 
 ## Script Details
+
+### cleanup-database.sh / cleanup-database.ts
+**⚠️ DANGER: This deletes ALL flights, drones, telemetry, and related data!**
+
+Completely cleans the database by:
+- Deleting all telemetry points
+- Deleting all flights (active and completed)
+- Deleting all drones
+- Deleting related data (betaflight configs, blackbox logs, remotes, shared flights)
 
 ### start-all.sh
 Starts Docker containers, runs migrations, and starts both backend and frontend servers.
@@ -42,8 +86,14 @@ Starts Docker containers, runs migrations, and starts both backend and frontend 
 ### check-setup.sh
 Checks if all prerequisites are installed and configured correctly.
 
-### send_flight_path.py
-Sends 15 telemetry points with different coordinates to create a visible flight path. All points use the same session_id, so they appear in one flight.
+### simulate_15min_flight.py
+Sends telemetry data every second for 15 minutes, simulating a real flight with:
+- Realistic battery consumption
+- Altitude variation
+- Automatic RTH when battery is low
+- Flight path to destination and back home
+
+See [README_FLIGHT_SIMULATION.md](./README_FLIGHT_SIMULATION.md) for full documentation.
 
 ---
 

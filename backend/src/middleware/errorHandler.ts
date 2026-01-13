@@ -36,8 +36,9 @@ export function errorHandler(
   }
 
   // Default error
+  const isProduction = process.env.NODE_ENV === 'production';
   res.status(500).json({
-    error: process.env.NODE_ENV === 'production' 
+    error: isProduction 
       ? 'Internal server error' 
       : err.message,
   });

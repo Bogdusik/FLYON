@@ -25,6 +25,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# But keep example files
+!.env.example
+!env.example
+!env.local.example
+
 # IDE
 .vscode/
 .idea/

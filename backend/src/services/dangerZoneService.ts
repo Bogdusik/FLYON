@@ -63,7 +63,7 @@ export async function createDangerZone(
   );
 
   // Invalidate cache when new zone is created
-  invalidateDangerZoneCache(userId || undefined);
+  await invalidateDangerZoneCache(userId || undefined);
 
   return result.rows[0] as DangerZone;
 }

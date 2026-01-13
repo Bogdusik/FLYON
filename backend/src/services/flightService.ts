@@ -1,6 +1,6 @@
 import { query } from '../config/database';
 import { createPoint, createLineString } from '../utils/postgis';
-import { Flight, Telemetry } from '../types/database';
+import { Flight } from '../types/database';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -12,6 +12,7 @@ export interface CreateFlightInput {
   drone_id: string;
   session_id?: string;
   started_at?: Date;
+  start_position?: string; // PostGIS POINT WKT format
 }
 
 export interface UpdateFlightInput {
@@ -26,12 +27,22 @@ export async function createFlight(userId: string, input: CreateFlightInput): Pr
   const sessionId = input.session_id || `session_${Date.now()}_${uuidv4()}`;
   const startedAt = input.started_at || new Date();
 
-  const result = await query(
-    `INSERT INTO flights (drone_id, user_id, session_id, started_at, status)
-     VALUES ($1, $2, $3, $4, 'active')
-     RETURNING *`,
-    [input.drone_id, userId, sessionId, startedAt]
-  );
+  let queryText: string;
+  let queryParams: any[];
+
+  if (input.start_position) {
+    queryText = `INSERT INTO flights (drone_id, user_id, session_id, started_at, status, start_position)
+                 VALUES ($1, $2, $3, $4, 'active', ST_GeomFromText($5, 4326))
+                 RETURNING *`;
+    queryParams = [input.drone_id, userId, sessionId, startedAt, input.start_position];
+  } else {
+    queryText = `INSERT INTO flights (drone_id, user_id, session_id, started_at, status)
+                 VALUES ($1, $2, $3, $4, 'active')
+                 RETURNING *`;
+    queryParams = [input.drone_id, userId, sessionId, startedAt];
+  }
+
+  const result = await query(queryText, queryParams);
 
   return result.rows[0] as Flight;
 }

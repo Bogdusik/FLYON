@@ -1,8 +1,6 @@
 import pg from 'pg';
-import dotenv from 'dotenv';
 import logger from '../utils/logger';
-
-dotenv.config();
+import env from './env';
 
 const { Pool } = pg;
 
@@ -11,11 +9,11 @@ const { Pool } = pg;
  * Uses PostGIS for geospatial queries
  */
 export const pool = new Pool({
-  host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5432'),
-  user: process.env.POSTGRES_USER || 'flyon',
-  password: process.env.POSTGRES_PASSWORD || 'flyon_dev_password',
-  database: process.env.POSTGRES_DB || 'flyon',
+  host: env.postgres.host,
+  port: env.postgres.port,
+  user: env.postgres.user,
+  password: env.postgres.password,
+  database: env.postgres.database,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -40,27 +38,39 @@ export async function testConnection(): Promise<void> {
 }
 
 /**
- * Execute a query with error handling
+ * Execute a query with error handling and performance monitoring
  */
 export async function query(text: string, params?: any[]): Promise<pg.QueryResult> {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    // Only log slow queries (>50ms) or important queries to reduce noise
-    if (duration > 50 || text.includes('SELECT') && text.includes('users') && text.includes('WHERE id')) {
-      logger.debug('Executed query', { 
+    
+    // Log slow queries for optimization
+    if (duration > 100) {
+      logger.warn('Slow query detected', { 
+        text: text.substring(0, 200) + (text.length > 200 ? '...' : ''), 
+        duration, 
+        rows: res.rowCount,
+        params: params?.length || 0,
+      });
+    } else if (duration > 50) {
+      logger.debug('Query executed', { 
         text: text.substring(0, 100) + (text.length > 100 ? '...' : ''), 
         duration, 
         rows: res.rowCount 
       });
     }
+    
     return res;
   } catch (error: any) {
+    const duration = Date.now() - start;
     logger.error('Query error', { 
       text: text.substring(0, 200),
       error: error.message,
-      code: error.code 
+      code: error.code,
+      duration,
+      params: params?.length || 0,
     });
     throw error;
   }

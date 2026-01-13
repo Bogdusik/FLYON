@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -71,17 +71,68 @@ interface LiveMapProps {
 function MapUpdater({ center, follow }: { center?: [number, number]; follow?: boolean }) {
   const map = useMap();
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userInteractedRef = useRef(false);
+  const lastCenterRef = useRef<[number, number] | null>(null);
   
+  // Track user interactions (pan, zoom, etc.)
   useEffect(() => {
-    if (center && follow) {
+    const handleMoveStart = () => {
+      userInteractedRef.current = true;
+    };
+
+    const handleMoveEnd = () => {
+      // Reset after a delay to allow auto-follow again if needed
+      setTimeout(() => {
+        userInteractedRef.current = false;
+      }, 5000); // 5 seconds after user stops interacting
+    };
+
+    map.on('movestart', handleMoveStart);
+    map.on('moveend', handleMoveEnd);
+    map.on('zoomstart', handleMoveStart);
+    map.on('zoomend', handleMoveEnd);
+
+    return () => {
+      map.off('movestart', handleMoveStart);
+      map.off('moveend', handleMoveEnd);
+      map.off('zoomstart', handleMoveStart);
+      map.off('zoomend', handleMoveEnd);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (center && follow && !userInteractedRef.current) {
+      // Only update if center actually changed significantly (more than 10 meters)
+      if (lastCenterRef.current) {
+        const R = 6371000; // Earth radius in meters
+        const lat1 = lastCenterRef.current[0] * Math.PI / 180;
+        const lat2 = center[0] * Math.PI / 180;
+        const deltaLat = (center[0] - lastCenterRef.current[0]) * Math.PI / 180;
+        const deltaLon = (center[1] - lastCenterRef.current[1]) * Math.PI / 180;
+        
+        const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        // Only update if drone moved more than 10 meters
+        if (distance < 10) {
+          return;
+        }
+      }
+
       // Debounce map updates to prevent excessive re-renders
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
       
       updateTimeoutRef.current = setTimeout(() => {
-        map.setView(center, map.getZoom(), { animate: true, duration: 0.5 });
-      }, 100); // 100ms debounce for smooth updates
+        if (!userInteractedRef.current) {
+          map.setView(center, map.getZoom(), { animate: false, duration: 0 });
+          lastCenterRef.current = center;
+        }
+      }, 500); // 500ms debounce for smooth updates
     }
 
     return () => {
@@ -94,7 +145,7 @@ function MapUpdater({ center, follow }: { center?: [number, number]; follow?: bo
   return null;
 }
 
-export default function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = false }: LiveMapProps) {
+function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = false }: LiveMapProps) {
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [path, setPath] = useState<[number, number][]>([]);
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetryPoint | null>(null);
@@ -115,7 +166,7 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
       .map(t => [t.latitude, t.longitude] as [number, number]);
   }, [telemetry]);
 
-  // Debounced update to prevent excessive re-renders
+  // Debounced update to prevent excessive re-renders and blinking
   useEffect(() => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -132,8 +183,23 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
         setLatestTelemetry(latestTelemetry);
         
         // Set path for trajectory (even if only 1 point)
+        // Only update path if it actually changed to prevent re-renders
         if (showPath) {
-          setPath(validPoints);
+          setPath(prevPath => {
+            // Check if path actually changed
+            if (prevPath.length !== validPoints.length) {
+              return validPoints;
+            }
+            // Check if last point changed
+            if (prevPath.length > 0 && validPoints.length > 0) {
+              const lastPrev = prevPath[prevPath.length - 1];
+              const lastNew = validPoints[validPoints.length - 1];
+              if (lastPrev[0] !== lastNew[0] || lastPrev[1] !== lastNew[1]) {
+                return validPoints;
+              }
+            }
+            return prevPath; // No change, return previous path
+          });
         }
       } else {
         // Clear path if no telemetry
@@ -141,7 +207,7 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
         setCurrentPosition(null);
         setLatestTelemetry(null);
       }
-    }, 50); // 50ms debounce for smooth real-time updates
+    }, 200); // Increased debounce to 200ms to reduce blinking
 
     return () => {
       if (updateTimeoutRef.current) {
@@ -277,3 +343,5 @@ export default function LiveMap({ telemetry, center, zoom = 15, showPath = true,
     </div>
   );
 }
+
+export default memo(LiveMap);

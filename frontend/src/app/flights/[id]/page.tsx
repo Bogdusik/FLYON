@@ -11,6 +11,7 @@ import TelemetryGraphs from '@/components/TelemetryGraphs';
 import { showDangerZoneWarning, requestNotificationPermission } from '@/utils/notifications';
 import { parsePosition } from '@/utils/position';
 import Navbar from '@/components/Navbar';
+import { toast } from '@/components/Toast';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false });
 
@@ -34,6 +35,13 @@ export default function FlightDetailPage() {
   const wsClientRef = useRef<any>(null);
   const telemetryHandlersRef = useRef<Map<string, (data: any) => void>>(new Map());
   const statsPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [realTimeDuration, setRealTimeDuration] = useState<number>(0);
+  const [realTimeStats, setRealTimeStats] = useState<{
+    distance: number;
+    maxAltitude: number;
+    maxSpeed: number;
+    minBattery: number;
+  } | null>(null);
 
   const loadFlightData = useCallback(async () => {
     try {
@@ -96,7 +104,12 @@ export default function FlightDetailPage() {
         // Advanced metrics are optional
         console.log('Advanced metrics not available');
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Handle rate limiting gracefully - don't crash
+      if (error.isRateLimit) {
+        console.warn('Rate limit reached, skipping flight data update');
+        return;
+      }
       console.error('Failed to load flight data:', error);
     } finally {
       setLoading(false);
@@ -107,13 +120,21 @@ export default function FlightDetailPage() {
     if (wsClientRef.current) {
       // Remove all handlers
       telemetryHandlersRef.current.forEach((handler, type) => {
-        wsClientRef.current.off(type, handler);
+        try {
+          wsClientRef.current.off(type, handler);
+        } catch (e) {
+          // Handler might not exist, ignore
+        }
       });
       telemetryHandlersRef.current.clear();
       
       // Unsubscribe from flight
       if (flightId) {
-        wsClientRef.current.unsubscribe(flightId);
+        try {
+          wsClientRef.current.unsubscribe(flightId);
+        } catch (e) {
+          // Might already be unsubscribed
+        }
       }
       
       wsClientRef.current = null;
@@ -179,6 +200,18 @@ export default function FlightDetailPage() {
           }
         }
       };
+
+      // Analytics update handler (for real-time stats)
+      const analyticsUpdateHandler = (message: any) => {
+        if (message.flight_id === flightId && message.data) {
+          // Update flight with new stats from backend
+          setFlight(prev => prev ? { ...prev, ...message.data } : null);
+        }
+      };
+
+      // Store analytics handler
+      telemetryHandlersRef.current.set('analytics_update', analyticsUpdateHandler);
+      ws.on('analytics_update', analyticsUpdateHandler);
 
       // Store handlers for cleanup
       telemetryHandlersRef.current.set('telemetry', telemetryHandler);
@@ -315,9 +348,83 @@ export default function FlightDetailPage() {
     }).filter(Boolean) as any[];
   }, [telemetry]);
 
+  // Calculate real-time duration for active flights
+  useEffect(() => {
+    if (flight?.status === 'active' && flight.started_at) {
+      const updateDuration = () => {
+        const startTime = new Date(flight.started_at).getTime();
+        const now = Date.now();
+        setRealTimeDuration(Math.floor((now - startTime) / 1000));
+      };
+
+      updateDuration();
+      const interval = setInterval(updateDuration, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      setRealTimeDuration(0);
+    }
+  }, [flight?.status, flight?.started_at]);
+
+  // Calculate real-time statistics from telemetry for active flights
+  useEffect(() => {
+    if (flight?.status === 'active' && telemetry.length > 0) {
+      let totalDistance = 0;
+      let maxAltitude = 0;
+      let maxSpeed = 0;
+      let minBattery = 100;
+
+      for (let i = 1; i < telemetry.length; i++) {
+        const prev = telemetry[i - 1];
+        const curr = telemetry[i];
+        
+        const prevPos = parsePosition(prev.position);
+        const currPos = parsePosition(curr.position);
+        
+        if (prevPos && currPos) {
+          // Haversine distance calculation
+          const R = 6371000; // Earth radius in meters
+          const lat1 = prevPos.lat * Math.PI / 180;
+          const lat2 = currPos.lat * Math.PI / 180;
+          const deltaLat = (currPos.lat - prevPos.lat) * Math.PI / 180;
+          const deltaLon = (currPos.lon - prevPos.lon) * Math.PI / 180;
+          
+          const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          
+          totalDistance += R * c;
+        }
+
+        if (curr.altitude_meters != null && !isNaN(Number(curr.altitude_meters))) {
+          maxAltitude = Math.max(maxAltitude, Number(curr.altitude_meters));
+        }
+        
+        if (curr.speed_mps != null && !isNaN(Number(curr.speed_mps))) {
+          maxSpeed = Math.max(maxSpeed, Number(curr.speed_mps));
+        }
+        
+        if (curr.battery_percent != null && !isNaN(Number(curr.battery_percent))) {
+          minBattery = Math.min(minBattery, Number(curr.battery_percent));
+        }
+      }
+
+      setRealTimeStats({
+        distance: totalDistance,
+        maxAltitude,
+        maxSpeed,
+        minBattery,
+      });
+    } else {
+      setRealTimeStats(null);
+    }
+  }, [flight?.status, telemetry]);
+
+  // Use latest position for center, not the first one
   const center = useMemo(() => {
     return telemetryPoints.length > 0
-      ? [telemetryPoints[0].latitude, telemetryPoints[0].longitude] as [number, number]
+      ? [telemetryPoints[telemetryPoints.length - 1].latitude, telemetryPoints[telemetryPoints.length - 1].longitude] as [number, number]
       : undefined;
   }, [telemetryPoints]);
 
@@ -333,15 +440,15 @@ export default function FlightDetailPage() {
     <div className="min-h-screen">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Link href="/flights" className="text-blue-400 hover:text-blue-300 transition-smooth mb-2 inline-block">
+      <main className="container mx-auto px-4 py-4">
+        <div className="mb-4">
+          <Link href="/flights" className="text-blue-400 hover:text-blue-300 transition-smooth mb-1.5 inline-block text-xs">
             ← Back to Flights
           </Link>
           <div className="flex justify-between items-start">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-bold text-white">Flight Details</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-xl font-medium text-white">Flight Details</h1>
                 {isLive && flight.status === 'active' && (
                   <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full">
                     <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
@@ -359,88 +466,213 @@ export default function FlightDetailPage() {
             <div className="flex gap-2">
               {flight.status === 'active' && (
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    
+                    if (!flightId) {
+                      console.error('Flight ID is missing');
+                      alert('Error: Flight ID is missing. Please refresh the page.');
+                      return;
+                    }
                     
                     const confirmed = window.confirm('Complete this flight? This will mark it as finished.');
                     if (!confirmed) return;
                     
-                    (async () => {
-                      try {
-                        await flightsAPI.update(flightId, {
-                          status: 'completed',
-                          ended_at: new Date().toISOString(),
-                        });
-                        await loadFlightData();
-                      } catch (err: any) {
-                        alert(err.response?.data?.error || 'Failed to complete flight');
+                    // Optimistic update
+                    const previousFlight = flight;
+                    setFlight(prev => prev ? { ...prev, status: 'completed' as const, ended_at: new Date().toISOString() } : null);
+                    
+                    try {
+                      await flightsAPI.update(flightId, {
+                        status: 'completed',
+                        ended_at: new Date().toISOString(),
+                      });
+                      toast.success('Flight completed successfully!');
+                      await loadFlightData();
+                    } catch (err: any) {
+                      console.error('Complete flight error:', err);
+                      
+                      // Rollback optimistic update
+                      if (previousFlight) {
+                        setFlight(previousFlight);
                       }
-                    })();
+                      
+                      // Handle rate limiting
+                      if (err.isRateLimit) {
+                        toast.error(`Rate limit exceeded. Please try again in ${Math.ceil(err.retryAfter / 60)} minutes.`);
+                        return;
+                      }
+                      
+                      // Handle network errors
+                      if (!err.response) {
+                        toast.error('Network error. Please check your connection and try again.');
+                        return;
+                      }
+                      
+                      // Handle other errors
+                      const errorMessage = err.response?.data?.error || err.message || 'Failed to complete flight';
+                      toast.error(errorMessage);
+                    }
                   }}
-                  className="px-4 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/30 transition-smooth cursor-pointer"
+                  className="btn-dji btn-dji-sm"
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    borderColor: 'rgba(16, 185, 129, 0.2)',
+                    color: 'rgba(110, 231, 183, 0.9)',
+                  }}
                 >
                   Complete Flight
                 </button>
               )}
               <button
                 onClick={async () => {
+                  if (!flightId) {
+                    console.error('Flight ID is missing');
+                    alert('Error: Flight ID is missing. Please refresh the page.');
+                    return;
+                  }
+
                   try {
                     const response = await exportAPI.exportFlightKML(flightId);
                     const url = window.URL.createObjectURL(new Blob([response.data]));
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `flight-${flightId}.kml`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
-                  } catch (err) {
-                    alert('Failed to export KML');
+                  } catch (err: any) {
+                    console.error('Export KML error:', err);
+                    
+                    // Handle rate limiting
+                    if (err.isRateLimit) {
+                      alert(`Rate limit exceeded. Please try again in ${Math.ceil(err.retryAfter / 60)} minutes.`);
+                      return;
+                    }
+                    
+                    // Handle network errors
+                    if (!err.response) {
+                      alert('Network error. Please check your connection and try again.');
+                      return;
+                    }
+                    
+                    // Handle other errors
+                    const errorMessage = err.response?.data?.error || err.message || 'Failed to export KML';
+                    alert(`Error: ${errorMessage}`);
                   }
                 }}
-                className="px-4 py-2 glass text-white/90 rounded-lg hover:bg-white/10 transition-smooth"
+                className="btn-dji btn-dji-sm"
               >
                 Export KML
               </button>
               <button
                 onClick={async () => {
+                  if (!flightId) {
+                    console.error('Flight ID is missing');
+                    alert('Error: Flight ID is missing. Please refresh the page.');
+                    return;
+                  }
+
                   try {
                     const response = await exportAPI.exportFlightGPX(flightId);
                     const url = window.URL.createObjectURL(new Blob([response.data]));
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `flight-${flightId}.gpx`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
-                  } catch (err) {
-                    alert('Failed to export GPX');
+                  } catch (err: any) {
+                    console.error('Export GPX error:', err);
+                    
+                    // Handle rate limiting
+                    if (err.isRateLimit) {
+                      alert(`Rate limit exceeded. Please try again in ${Math.ceil(err.retryAfter / 60)} minutes.`);
+                      return;
+                    }
+                    
+                    // Handle network errors
+                    if (!err.response) {
+                      alert('Network error. Please check your connection and try again.');
+                      return;
+                    }
+                    
+                    // Handle other errors
+                    const errorMessage = err.response?.data?.error || err.message || 'Failed to export GPX';
+                    alert(`Error: ${errorMessage}`);
                   }
                 }}
-                className="px-4 py-2 glass text-white/90 rounded-lg hover:bg-white/10 transition-smooth"
+                className="btn-dji btn-dji-sm"
               >
                 Export GPX
               </button>
+              {flight.status === 'active' && (
+                <Link
+                  href={`/flights/${flightId}/live`}
+                  className="btn-dji btn-dji-sm"
+                >
+                  🚁 Live View
+                </Link>
+              )}
               <button
                 onClick={async () => {
-                  if (shareLink) {
-                    navigator.clipboard.writeText(`${window.location.origin}${shareLink}`);
-                    alert('Share link copied to clipboard!');
+                  if (!flightId) {
+                    console.error('Flight ID is missing');
+                    alert('Error: Flight ID is missing. Please refresh the page.');
                     return;
                   }
+
+                  if (shareLink) {
+                    try {
+                      await navigator.clipboard.writeText(`${window.location.origin}${shareLink}`);
+                      alert('Share link copied to clipboard!');
+                    } catch (err) {
+                      console.error('Clipboard error:', err);
+                      alert('Failed to copy to clipboard. Please copy manually: ' + `${window.location.origin}${shareLink}`);
+                    }
+                    return;
+                  }
+                  
                   setSharing(true);
                   try {
                     const res = await sharingAPI.createFlightShare(flightId);
                     const fullUrl = `${window.location.origin}${res.data.share_url}`;
                     setShareLink(res.data.share_url);
-                    navigator.clipboard.writeText(fullUrl);
-                    alert('Share link created and copied to clipboard!');
+                    
+                    try {
+                      await navigator.clipboard.writeText(fullUrl);
+                      alert('Share link created and copied to clipboard!');
+                    } catch (clipboardErr) {
+                      console.error('Clipboard error:', clipboardErr);
+                      alert(`Share link created: ${fullUrl}\n\nPlease copy it manually.`);
+                    }
                   } catch (err: any) {
-                    alert(err.response?.data?.error || 'Failed to create share link');
+                    console.error('Share flight error:', err);
+                    
+                    // Handle rate limiting
+                    if (err.isRateLimit) {
+                      alert(`Rate limit exceeded. Please try again in ${Math.ceil(err.retryAfter / 60)} minutes.`);
+                      return;
+                    }
+                    
+                    // Handle network errors
+                    if (!err.response) {
+                      alert('Network error. Please check your connection and try again.');
+                      return;
+                    }
+                    
+                    // Handle other errors
+                    const errorMessage = err.response?.data?.error || err.message || 'Failed to create share link';
+                    alert(`Error: ${errorMessage}`);
                   } finally {
                     setSharing(false);
                   }
                 }}
                 disabled={sharing}
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all disabled:opacity-50"
+                className="btn-dji btn-dji-sm"
               >
                 {sharing ? 'Sharing...' : shareLink ? 'Copy Share Link' : 'Share Flight'}
               </button>
@@ -448,9 +680,9 @@ export default function FlightDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="glass-card rounded-xl p-6 hover-lift">
-            <h3 className="text-lg font-semibold mb-4 text-white">Flight Info</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div className="glass-card rounded-lg p-4 border border-white/10">
+            <h3 className="text-sm font-medium mb-3 text-white">Flight Info</h3>
             <div className="space-y-2 text-sm text-white/90">
               <p><span className="font-medium">Status:</span> <span className={`px-3 py-1 rounded-full text-xs font-medium ml-2 ${
                 flight.status === 'active' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
@@ -459,14 +691,16 @@ export default function FlightDetailPage() {
               }`}>{flight.status}</span></p>
               <p><span className="font-medium">Started:</span> {new Date(flight.started_at).toLocaleString()}</p>
               {flight.ended_at && <p><span className="font-medium">Ended:</span> {new Date(flight.ended_at).toLocaleString()}</p>}
-              {flight.duration_seconds && (
+              {flight.status === 'active' && realTimeDuration > 0 ? (
+                <p><span className="font-medium">Duration:</span> {Math.floor(realTimeDuration / 60)}m {realTimeDuration % 60}s</p>
+              ) : flight.duration_seconds ? (
                 <p><span className="font-medium">Duration:</span> {Math.floor(flight.duration_seconds / 60)}m {flight.duration_seconds % 60}s</p>
-              )}
+              ) : null}
             </div>
           </div>
 
-          <div className="glass-card rounded-xl p-6 hover-lift">
-            <h3 className="text-lg font-semibold mb-4 text-white">Statistics</h3>
+          <div className="glass-card rounded-lg p-4 border border-white/10">
+            <h3 className="text-sm font-medium mb-3 text-white">Statistics</h3>
             {statsCalculating && statsStartTime && (
               <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
@@ -480,65 +714,77 @@ export default function FlightDetailPage() {
               </div>
             )}
             <div className="space-y-2 text-sm text-white/90">
-              {flight.total_distance_meters != null && !isNaN(Number(flight.total_distance_meters)) ? (
-                <p><span className="font-medium">Distance:</span> {(Number(flight.total_distance_meters) / 1000).toFixed(2)} km</p>
+              {/* Real-time stats for active flights, otherwise use stored stats */}
+              {flight.status === 'active' && realTimeStats ? (
+                <>
+                  <p><span className="font-medium">Distance:</span> {(realTimeStats.distance / 1000).toFixed(2)} km</p>
+                  <p><span className="font-medium">Max Altitude:</span> {realTimeStats.maxAltitude.toFixed(1)} m</p>
+                  <p><span className="font-medium">Max Speed:</span> {realTimeStats.maxSpeed.toFixed(1)} m/s</p>
+                  <p><span className="font-medium">Min Battery:</span> {realTimeStats.minBattery.toFixed(1)}%</p>
+                </>
               ) : (
-                <p className="text-white/50 flex items-center gap-2">
-                  <span>Distance:</span>
-                  {statsCalculating ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="loading-spinner w-3 h-3"></span>
-                      Calculating...
-                    </span>
+                <>
+                  {flight.total_distance_meters != null && !isNaN(Number(flight.total_distance_meters)) ? (
+                    <p><span className="font-medium">Distance:</span> {(Number(flight.total_distance_meters) / 1000).toFixed(2)} km</p>
                   ) : (
-                    <span>Calculating...</span>
+                    <p className="text-white/50 flex items-center gap-2">
+                      <span>Distance:</span>
+                      {statsCalculating ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="loading-spinner w-3 h-3"></span>
+                          Calculating...
+                        </span>
+                      ) : (
+                        <span>Calculating...</span>
+                      )}
+                    </p>
                   )}
-                </p>
-              )}
-              {flight.max_altitude_meters != null && !isNaN(Number(flight.max_altitude_meters)) ? (
-                <p><span className="font-medium">Max Altitude:</span> {Number(flight.max_altitude_meters).toFixed(1)} m</p>
-              ) : (
-                <p className="text-white/50 flex items-center gap-2">
-                  <span>Max Altitude:</span>
-                  {statsCalculating ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="loading-spinner w-3 h-3"></span>
-                      Calculating...
-                    </span>
+                  {flight.max_altitude_meters != null && !isNaN(Number(flight.max_altitude_meters)) ? (
+                    <p><span className="font-medium">Max Altitude:</span> {Number(flight.max_altitude_meters).toFixed(1)} m</p>
                   ) : (
-                    <span>Calculating...</span>
+                    <p className="text-white/50 flex items-center gap-2">
+                      <span>Max Altitude:</span>
+                      {statsCalculating ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="loading-spinner w-3 h-3"></span>
+                          Calculating...
+                        </span>
+                      ) : (
+                        <span>Calculating...</span>
+                      )}
+                    </p>
                   )}
-                </p>
-              )}
-              {flight.max_speed_mps != null && !isNaN(Number(flight.max_speed_mps)) ? (
-                <p><span className="font-medium">Max Speed:</span> {Number(flight.max_speed_mps).toFixed(1)} m/s</p>
-              ) : (
-                <p className="text-white/50 flex items-center gap-2">
-                  <span>Max Speed:</span>
-                  {statsCalculating ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="loading-spinner w-3 h-3"></span>
-                      Calculating...
-                    </span>
+                  {flight.max_speed_mps != null && !isNaN(Number(flight.max_speed_mps)) ? (
+                    <p><span className="font-medium">Max Speed:</span> {Number(flight.max_speed_mps).toFixed(1)} m/s</p>
                   ) : (
-                    <span>Calculating...</span>
+                    <p className="text-white/50 flex items-center gap-2">
+                      <span>Max Speed:</span>
+                      {statsCalculating ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="loading-spinner w-3 h-3"></span>
+                          Calculating...
+                        </span>
+                      ) : (
+                        <span>Calculating...</span>
+                      )}
+                    </p>
                   )}
-                </p>
-              )}
-              {flight.min_battery_percent != null && !isNaN(Number(flight.min_battery_percent)) ? (
-                <p><span className="font-medium">Min Battery:</span> {Number(flight.min_battery_percent).toFixed(1)}%</p>
-              ) : (
-                <p className="text-white/50 flex items-center gap-2">
-                  <span>Min Battery:</span>
-                  {statsCalculating ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="loading-spinner w-3 h-3"></span>
-                      Calculating...
-                    </span>
+                  {flight.min_battery_percent != null && !isNaN(Number(flight.min_battery_percent)) ? (
+                    <p><span className="font-medium">Min Battery:</span> {Number(flight.min_battery_percent).toFixed(1)}%</p>
                   ) : (
-                    <span>Calculating...</span>
+                    <p className="text-white/50 flex items-center gap-2">
+                      <span>Min Battery:</span>
+                      {statsCalculating ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="loading-spinner w-3 h-3"></span>
+                          Calculating...
+                        </span>
+                      ) : (
+                        <span>Calculating...</span>
+                      )}
+                    </p>
                   )}
-                </p>
+                </>
               )}
               {!statsCalculating && !flight.total_distance_meters && !flight.max_altitude_meters && !flight.max_speed_mps && !flight.min_battery_percent && flight.status === 'completed' && (
                 <p className="text-white/50 italic text-xs mt-2">Statistics calculation will start automatically...</p>
@@ -548,11 +794,11 @@ export default function FlightDetailPage() {
 
           {healthScore && (
             <div className="glass-card rounded-xl p-6 hover-lift group">
-              <h3 className="text-lg font-semibold mb-4 text-white">Health Score</h3>
+              <h3 className="text-sm font-medium mb-3 text-white">Health Score</h3>
               <div className="space-y-2 text-sm text-white/90">
                 <p className="flex items-center">
                   <span className="font-medium">Overall:</span> 
-                  <span className="text-2xl font-bold gradient-text ml-2 inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">{healthScore.overall}/100</span>
+                  <span className="text-xl font-medium text-white ml-2">{healthScore.overall}/100</span>
                 </p>
                 <p><span className="font-medium">Safety:</span> {healthScore.safety}/100</p>
                 <p><span className="font-medium">Smoothness:</span> {healthScore.smoothness}/100</p>
@@ -565,7 +811,7 @@ export default function FlightDetailPage() {
 
         <div className="glass-card rounded-xl p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">Flight Path</h2>
+            <h2 className="text-base font-medium text-white">Flight Path</h2>
             {isLive && flight.status === 'active' && telemetry.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
@@ -580,7 +826,7 @@ export default function FlightDetailPage() {
                 telemetry={telemetryPoints} 
                 center={center} 
                 showPath={true}
-                followDrone={isLive && flight.status === 'active'}
+                followDrone={false}
               />
             ) : (
               <div className="h-full flex items-center justify-center text-white/60">
@@ -599,7 +845,7 @@ export default function FlightDetailPage() {
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="glass rounded-lg p-4 border border-blue-500/30 group hover:border-blue-500/50 transition-all">
                   <p className="text-white/60 mb-2 text-xs uppercase tracking-wide">Altitude</p>
-                  <p className="text-2xl font-bold text-blue-400 inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">
+                  <p className="text-lg font-medium text-blue-400">
                     {altitude !== null ? `${altitude.toFixed(1)} m` : 'N/A'}
                   </p>
                   {telemetryPoints.length > 1 && (
@@ -610,7 +856,7 @@ export default function FlightDetailPage() {
                 </div>
                 <div className="glass rounded-lg p-4 border border-purple-500/30 group hover:border-purple-500/50 transition-all">
                   <p className="text-white/60 mb-2 text-xs uppercase tracking-wide">Speed</p>
-                  <p className="text-2xl font-bold text-purple-400 inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">
+                  <p className="text-lg font-medium text-purple-400">
                     {speed !== null ? `${speed.toFixed(1)} m/s` : 'N/A'}
                   </p>
                   {telemetryPoints.length > 1 && (
@@ -621,7 +867,7 @@ export default function FlightDetailPage() {
                 </div>
                 <div className="glass rounded-lg p-4 border border-emerald-500/30 group hover:border-emerald-500/50 transition-all">
                   <p className="text-white/60 mb-2 text-xs uppercase tracking-wide">Battery</p>
-                  <p className="text-2xl font-bold text-emerald-400 inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">
+                  <p className="text-lg font-medium text-emerald-400">
                     {battery !== null ? `${battery.toFixed(1)}%` : 'N/A'}
                   </p>
                   {telemetryPoints.length > 1 && (
@@ -632,7 +878,7 @@ export default function FlightDetailPage() {
                 </div>
                 <div className="glass rounded-lg p-4 border border-cyan-500/30 group hover:border-cyan-500/50 transition-all">
                   <p className="text-white/60 mb-2 text-xs uppercase tracking-wide">Points</p>
-                  <p className="text-2xl font-bold text-cyan-400 inline-block transform group-hover:scale-110 transition-transform duration-300 origin-center">
+                  <p className="text-lg font-medium text-cyan-400">
                     {telemetryPoints.length}
                   </p>
                   <p className="text-xs text-white/40 mt-1">
@@ -646,11 +892,11 @@ export default function FlightDetailPage() {
 
         {advancedMetrics && (
           <div className="mb-6 glass-card rounded-xl p-6">
-            <h2 className="text-xl font-semibold mb-4 text-white">Advanced Metrics</h2>
+            <h2 className="text-base font-medium mb-3 text-white">Advanced Metrics</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <h3 className="text-white/80 text-sm mb-2">G-Force</h3>
-                <p className="text-white text-lg font-semibold">
+                <p className="text-white text-sm font-medium">
                   Max: {advancedMetrics.gforce?.max?.toFixed(2) || 'N/A'}G
                 </p>
                 <p className="text-white/60 text-sm">
@@ -659,13 +905,13 @@ export default function FlightDetailPage() {
               </div>
               <div>
                 <h3 className="text-white/80 text-sm mb-2">Maneuvers</h3>
-                <p className="text-white text-lg font-semibold">
+                <p className="text-white text-sm font-medium">
                   {advancedMetrics.maneuvers?.length || 0} detected
                 </p>
               </div>
               <div>
                 <h3 className="text-white/80 text-sm mb-2">Battery Efficiency</h3>
-                <p className="text-white text-lg font-semibold">
+                <p className="text-white text-sm font-medium">
                   {advancedMetrics.battery_efficiency?.efficiency_score?.toFixed(0) || 'N/A'}%
                 </p>
               </div>
@@ -681,7 +927,7 @@ export default function FlightDetailPage() {
 
         {flight.risk_events && flight.risk_events.length > 0 && (
           <div className="glass-card rounded-xl p-6">
-            <h2 className="text-xl font-semibold mb-4 text-white">Risk Events</h2>
+            <h2 className="text-base font-medium mb-3 text-white">Risk Events</h2>
             <div className="space-y-3">
               {flight.risk_events.map((event) => (
                 <div key={event.id} className={`p-4 rounded-lg border-l-4 glass ${

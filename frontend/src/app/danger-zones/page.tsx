@@ -85,36 +85,36 @@ export default function DangerZonesPage() {
     <div className="min-h-screen">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold text-white">Danger Zones</h1>
+      <main className="container mx-auto px-4 py-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl font-medium text-white">Danger Zones</h1>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="btn-dji btn-dji-sm"
           >
-            Add Danger Zone
+            Add Zone
           </button>
         </div>
 
         {zones.length === 0 ? (
-          <div className="glass-card rounded-xl p-12 text-center">
-            <p className="text-white/70 mb-6 text-lg">No danger zones defined yet.</p>
+          <div className="glass-card rounded-lg p-4 text-center border border-white/10">
+            <p className="text-white/60 mb-3 text-sm">No danger zones defined yet.</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="btn-dji btn-dji-sm"
             >
-              Add Your First Danger Zone
+              Add Zone
             </button>
           </div>
         ) : (
           <div className="space-y-4">
             {zones.map((zone) => (
-              <div key={zone.id} className="glass-card rounded-xl p-6 hover-lift">
-                <div className="flex justify-between items-start mb-4">
+              <div key={zone.id} className="glass-card rounded-lg p-3 border border-white/10">
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="text-xl font-semibold text-white">{zone.name}</h3>
+                    <h3 className="text-sm font-medium text-white">{zone.name}</h3>
                     {zone.description && (
-                      <p className="text-white/70 mt-1">{zone.description}</p>
+                      <p className="text-white/70 text-xs mt-0.5">{zone.description}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -129,7 +129,12 @@ export default function DangerZonesPage() {
                     {zone.user_id && (
                       <button
                         onClick={() => handleDelete(zone.id)}
-                        className="px-3 py-1 text-sm bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-smooth"
+                        className="btn-dji btn-dji-sm"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          borderColor: 'rgba(239, 68, 68, 0.2)',
+                          color: 'rgba(252, 165, 165, 0.9)',
+                        }}
                       >
                         Delete
                       </button>
@@ -148,8 +153,8 @@ export default function DangerZonesPage() {
 
         {showAddModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="glass-strong rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4 text-white">Add Danger Zone</h2>
+            <div className="glass-strong rounded-lg p-5 max-w-sm w-full max-h-[90vh] overflow-y-auto">
+              <h2 className="text-lg font-medium mb-4 text-white">Add Danger Zone</h2>
               <form onSubmit={handleAddZone} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-1">
@@ -160,7 +165,8 @@ export default function DangerZonesPage() {
                     value={newZone.name}
                     onChange={(e) => setNewZone({ ...newZone, name: e.target.value })}
                     required
-                    className="w-full px-4 py-2 glass rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-smooth"
+                    className="input-dji w-full"
+                    placeholder="Zone name"
                   />
                 </div>
                 <div>
@@ -170,24 +176,30 @@ export default function DangerZonesPage() {
                   <textarea
                     value={newZone.description}
                     onChange={(e) => setNewZone({ ...newZone, description: e.target.value })}
-                    className="w-full px-4 py-2 glass rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-smooth"
+                    className="input-dji w-full"
                     rows={3}
+                    placeholder="Optional description"
                   />
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-white/80 mb-1">
                     Zone Type
                   </label>
                   <select
                     value={newZone.zone_type}
                     onChange={(e) => setNewZone({ ...newZone, zone_type: e.target.value as any })}
-                    className="w-full px-4 py-2 glass rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-smooth"
+                    className="input-dji w-full pr-10 appearance-none cursor-pointer"
                   >
-                    <option value="user">User</option>
-                    <option value="community">Community</option>
-                    <option value="airport">Airport</option>
-                    <option value="restricted">Restricted</option>
+                    <option value="user" style={{ backgroundColor: '#0f172a' }}>User</option>
+                    <option value="community" style={{ backgroundColor: '#0f172a' }}>Community</option>
+                    <option value="airport" style={{ backgroundColor: '#0f172a' }}>Airport</option>
+                    <option value="restricted" style={{ backgroundColor: '#0f172a' }}>Restricted</option>
                   </select>
+                  <div className="absolute right-3 top-9 pointer-events-none">
+                    <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-1">
@@ -197,7 +209,8 @@ export default function DangerZonesPage() {
                     type="number"
                     value={newZone.altitude_limit_meters}
                     onChange={(e) => setNewZone({ ...newZone, altitude_limit_meters: e.target.value })}
-                    className="w-full px-4 py-2 glass rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-smooth"
+                    className="input-dji w-full"
+                    placeholder="Optional"
                   />
                 </div>
                 <div>
@@ -214,7 +227,7 @@ export default function DangerZonesPage() {
                         // Invalid JSON, ignore
                       }
                     }}
-                    className="w-full px-4 py-2 glass rounded-lg font-mono text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-smooth"
+                    className="input-dji w-full font-mono text-sm"
                     rows={6}
                     placeholder='[{"lat": 51.505, "lon": -0.09}, {"lat": 51.506, "lon": -0.10}, ...]'
                   />
@@ -225,14 +238,14 @@ export default function DangerZonesPage() {
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all"
+                    className="btn-dji btn-dji-sm flex-1"
                   >
                     Add Zone
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="flex-1 px-4 py-2 glass text-white/90 rounded-lg hover:bg-white/10 transition-smooth"
+                    className="btn-dji btn-dji-sm flex-1 opacity-70"
                   >
                     Cancel
                   </button>

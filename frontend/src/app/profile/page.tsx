@@ -16,7 +16,6 @@ export default function ProfilePage() {
     name: '',
     email: '',
     phone: '',
-    avatar_url: '',
   });
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export default function ProfilePage() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        avatar_url: user.avatar_url || '',
       });
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -54,7 +52,6 @@ export default function ProfilePage() {
       await authAPI.updateMe({
         name: formData.name || undefined,
         phone: formData.phone || undefined,
-        avatar_url: formData.avatar_url || undefined,
       });
       setSuccess('Profile updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
@@ -79,8 +76,8 @@ export default function ProfilePage() {
         <main className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mb-4"></div>
-              <div className="text-xl text-white">Loading...</div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-white/30 border-t-white mb-3"></div>
+              <div className="text-sm text-white/70">Loading...</div>
             </div>
           </div>
         </main>
@@ -91,23 +88,23 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+        <main className="container mx-auto px-4 py-4 max-w-2xl">
         <FadeIn>
-          <h1 className="text-4xl font-bold text-white mb-8">Edit Profile</h1>
+          <h1 className="text-xl font-medium text-white mb-4">Edit Profile</h1>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg">
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="mb-6 p-4 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-lg">
+            <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-lg text-sm">
               {success}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="glass-card rounded-xl p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="glass-card rounded-lg p-5 space-y-4 border border-white/10">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
                 Name
@@ -118,7 +115,7 @@ export default function ProfilePage() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dji w-full"
                 placeholder="Your name"
               />
             </div>
@@ -133,7 +130,7 @@ export default function ProfilePage() {
                 name="email"
                 value={formData.email}
                 disabled
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white/60 cursor-not-allowed"
+                className="input-dji w-full opacity-50 cursor-not-allowed"
               />
               <p className="mt-1 text-xs text-white/50">Email cannot be changed</p>
             </div>
@@ -148,39 +145,23 @@ export default function ProfilePage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dji w-full"
                 placeholder="+1 (555) 123-4567"
               />
             </div>
 
-            <div>
-              <label htmlFor="avatar_url" className="block text-sm font-medium text-white/80 mb-2">
-                Avatar URL
-              </label>
-              <input
-                type="url"
-                id="avatar_url"
-                name="avatar_url"
-                value={formData.avatar_url}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/avatar.jpg"
-              />
-              <p className="mt-1 text-xs text-white/50">URL to your profile picture</p>
-            </div>
-
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-4">
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="btn-dji btn-dji-sm flex-1"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-3 glass text-white border-2 border-white/30 rounded-lg hover:bg-white/10 transition-all"
+                className="btn-dji btn-dji-sm opacity-70"
               >
                 Cancel
               </button>

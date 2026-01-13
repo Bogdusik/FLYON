@@ -43,32 +43,30 @@ export default function Home() {
       
       <div className="container mx-auto px-4 py-16 text-center">
         <FadeIn delay={droneComplete ? 0 : 4500} duration={800}>
-          <div className="glass-strong rounded-2xl p-12 max-w-2xl mx-auto hover-lift">
+          <div className="glass-strong rounded-lg p-6 max-w-lg mx-auto border border-white/10">
             <FadeIn delay={droneComplete ? 100 : 4600}>
-              <h1 className="text-7xl font-bold gradient-text mb-4 animate-glow">
+              <h1 className="text-3xl font-medium text-white mb-2">
                 FLYON
               </h1>
             </FadeIn>
             <FadeIn delay={droneComplete ? 200 : 4700}>
-              <p className="text-xl text-white/80 mb-8">
+              <p className="text-xs text-white/60 mb-4">
                 Personal web platform for drone and FPV drone owners
               </p>
             </FadeIn>
             <FadeIn delay={droneComplete ? 300 : 4800}>
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-3 justify-center">
                 <Link
                   href="/login"
-                  className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 relative overflow-hidden group"
+                  className="btn-dji btn-dji-sm"
                 >
-                  <span className="relative z-10">Login</span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
+                  Login
                 </Link>
                 <Link
                   href="/register"
-                  className="px-8 py-3 glass text-white border-2 border-white/30 rounded-lg hover:bg-white/10 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 relative overflow-hidden group"
+                  className="btn-dji btn-dji-sm opacity-70"
                 >
-                  <span className="relative z-10">Register</span>
-                  <span className="absolute inset-0 bg-white/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
+                  Register
                 </Link>
               </div>
             </FadeIn>

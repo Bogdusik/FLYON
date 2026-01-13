@@ -148,11 +148,27 @@ export async function regenerateDeviceToken(droneId: string, userId: string): Pr
 }
 
 /**
- * Delete (deactivate) a drone
+ * Delete a drone (and all associated flights via CASCADE)
+ * This physically deletes the drone, which triggers CASCADE deletion of:
+ * - All flights associated with this drone
+ * - All telemetry points for those flights
+ * - All betaflight configs for this drone
+ * - All blackbox logs for those flights
  */
 export async function deleteDrone(droneId: string, userId: string): Promise<void> {
+  // First verify ownership
+  const drone = await getDroneById(droneId, userId);
+  if (!drone) {
+    throw new Error('Drone not found');
+  }
+
+  // Physical delete - CASCADE will automatically delete:
+  // - flights (ON DELETE CASCADE)
+  // - telemetry (ON DELETE CASCADE from flights)
+  // - betaflight_configs (ON DELETE CASCADE)
+  // - blackbox_logs (ON DELETE CASCADE from flights)
   const result = await query(
-    'UPDATE drones SET is_active = false WHERE id = $1 AND user_id = $2',
+    'DELETE FROM drones WHERE id = $1 AND user_id = $2',
     [droneId, userId]
   );
 

@@ -46,8 +46,8 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-xl w-full glass-strong rounded-xl shadow-2xl p-10">
-        <h1 className="text-3xl font-bold text-center mb-6 gradient-text">
+      <div className="max-w-md w-full glass-strong rounded-lg shadow-lg p-6">
+        <h1 className="text-xl font-medium text-center mb-4 text-white">
           Create FLYON Account
         </h1>
 
@@ -67,7 +67,7 @@ export default function RegisterPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder:text-white/40 transition-smooth"
+              className="input-dji w-full"
               placeholder="Your name (optional)"
             />
           </div>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder:text-white/40 transition-smooth"
+              className="input-dji w-full"
               placeholder="your@email.com"
             />
           </div>
@@ -98,7 +98,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder:text-white/40 transition-smooth"
+              className="input-dji w-full"
               placeholder="Min 8 characters"
             />
             <p className="mt-1 text-xs text-white/50">
@@ -116,7 +116,7 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 glass rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder:text-white/40 transition-smooth"
+              className="input-dji w-full"
               placeholder="Confirm password"
             />
           </div>
@@ -124,7 +124,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+            className="btn-dji w-full"
           >
             {loading ? 'Creating account...' : 'Register'}
           </button>

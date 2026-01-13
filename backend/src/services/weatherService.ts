@@ -18,9 +18,9 @@ interface WeatherData {
  * Get weather data for coordinates (placeholder - would use real weather API)
  */
 export async function getWeatherForLocation(
-  latitude: number,
-  longitude: number,
-  timestamp?: Date
+  _latitude: number,
+  _longitude: number,
+  _timestamp?: Date
 ): Promise<WeatherData> {
   // Placeholder - would integrate with OpenWeatherMap, WeatherAPI, etc.
   // For now, return mock data

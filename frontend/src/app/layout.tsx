@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import DroneBackground from '@/components/DroneBackground';
 import ErrorBoundaryWrapper from '@/components/ErrorBoundaryWrapper';
+import ToastContainer from '@/components/Toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,12 +19,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body className={inter.className}>
         <ErrorBoundaryWrapper>
           <DroneBackground />
           <div className="relative z-10">
             {children}
           </div>
+          <ToastContainer />
         </ErrorBoundaryWrapper>
       </body>
     </html>
