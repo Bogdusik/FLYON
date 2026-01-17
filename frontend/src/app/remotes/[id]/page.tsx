@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import FadeIn from '@/components/FadeIn';
 import { remotesAPI } from '@/lib/api';
 import { Remote } from '@/types';
+import { toast } from '@/components/Toast';
 
 export default function RemoteDetailPage() {
   const params = useParams();
@@ -25,9 +26,11 @@ export default function RemoteDetailPage() {
   }, [refreshTick]);
 
   useEffect(() => {
-    const id = setInterval(() => setRefreshTick((t) => t + 1), 5000);
+    // Refresh more frequently when connected to see real-time updates
+    const interval = remote?.status === 'connected' ? 1000 : 5000;
+    const id = setInterval(() => setRefreshTick((t) => t + 1), interval);
     return () => clearInterval(id);
-  }, []);
+  }, [remote?.status]);
 
   const loadRemote = async () => {
     try {
@@ -52,9 +55,12 @@ export default function RemoteDetailPage() {
     setError('');
     try {
       await remotesAPI.updateStatus(remote.id, 'connecting');
+      toast.info('Connection initiated. Make sure the RadioMaster bridge application is running to complete the connection.');
       await loadRemote();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to connect remote');
+      const errorMsg = err.response?.data?.error || 'Failed to connect remote';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setConnecting(false);
     }
@@ -66,9 +72,12 @@ export default function RemoteDetailPage() {
     setError('');
     try {
       await remotesAPI.disconnect(remote.id);
+      toast.success('Remote disconnected successfully');
       await loadRemote();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to disconnect remote');
+      const errorMsg = err.response?.data?.error || 'Failed to disconnect remote';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setDisconnecting(false);
     }
@@ -231,8 +240,8 @@ export default function RemoteDetailPage() {
               {remote.status === 'connected'
                 ? 'Remote is connected and ready to use.'
                 : remote.status === 'connecting'
-                ? 'Remote is connecting. Please wait...'
-                : 'Remote is disconnected. Click Connect to establish connection.'}
+                ? 'Remote is connecting. Make sure the RadioMaster bridge application is running. The status will update automatically when the bridge connects.'
+                : 'Remote is disconnected. Click Connect to initiate connection. You will need to run the RadioMaster bridge application to complete the connection.'}
             </p>
           </div>
 
@@ -253,9 +262,26 @@ export default function RemoteDetailPage() {
                     <span className="text-white/60">Model</span>
                     <span className="text-white/80">{remote.model || 'Not specified'}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-white/60">ID</span>
-                    <span className="text-white/80 font-mono text-xs">{remote.id.slice(0, 8)}...</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white/80 font-mono text-xs">{remote.id}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(remote.id).then(() => {
+                            toast.success('Remote ID copied to clipboard!');
+                          }).catch(() => {
+                            toast.error('Failed to copy Remote ID');
+                          });
+                        }}
+                        className="text-white/50 hover:text-white/80 transition-colors text-xs"
+                        title="Copy Remote ID"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -288,9 +314,20 @@ export default function RemoteDetailPage() {
                   <li>Connect RadioMaster Pocket to your computer via USB</li>
                   <li>Enable USB Serial (VCP) mode on the transmitter</li>
                   <li>Click "Connect" button above</li>
-                  <li>Run the RadioMaster bridge application</li>
-                  <li>Remote data will appear in Metadata section</li>
+                  <li><strong className="text-white/80">Run the RadioMaster bridge application</strong> (required for connection)</li>
+                  <li>Remote data will appear in Metadata section when connected</li>
                 </ol>
+                <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-400">
+                  <strong>How to run bridge:</strong>
+                  <div className="mt-2 space-y-1 text-white/80">
+                    <div>1. Get JWT token from browser Local Storage</div>
+                    <div>2. Get Remote ID: <code className="bg-white/10 px-1 rounded">{remote.id}</code></div>
+                    <div>3. See <code className="bg-white/10 px-1 rounded">tools/radiomaster-bridge/QUICK_START.md</code> for full instructions</div>
+                  </div>
+                </div>
+                <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded text-xs text-yellow-400">
+                  <strong>Note:</strong> The bridge application must be running for the remote to connect. The status will remain "connecting" until the bridge application establishes the connection.
+                </div>
               </div>
             </div>
           </div>

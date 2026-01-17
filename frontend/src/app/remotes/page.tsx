@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import FadeIn from '@/components/FadeIn';
 import { remotesAPI } from '@/lib/api';
 import { Remote } from '@/types';
+import { toast } from '@/components/Toast';
 
 export default function RemotesPage() {
   const [remotes, setRemotes] = useState<Remote[]>([]);
@@ -53,16 +54,20 @@ export default function RemotesPage() {
       if (existingRemote) {
         // Reconnect existing remote
         await remotesAPI.updateStatus(existingRemote.id, 'connecting');
+        toast.info('Connection initiated. Make sure the RadioMaster bridge application is running.');
         setShowRadioMasterModal(false);
       } else {
         // Connect new remote
-        await remotesAPI.connectRadioMaster({ name: radiomasterName });
+        const response = await remotesAPI.connectRadioMaster({ name: radiomasterName });
+        toast.success('Remote created successfully! Make sure the RadioMaster bridge application is running to complete the connection.');
         setShowRadioMasterModal(false);
         setRadioMasterName('RadioMaster Pocket'); // Reset
       }
       await loadRemotes();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to connect RadioMaster remote');
+      const errorMsg = err.response?.data?.error || 'Failed to connect RadioMaster remote';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setConnecting(false);
     }
