@@ -11,12 +11,17 @@ coverage/
 out/
 build/
 dist/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Production
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+launchd.log
+launchd.error.log
+bridge.log
 
 # Environment variables
 .env
