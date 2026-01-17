@@ -45,6 +45,27 @@ FLYON/
 
 **See [docs/FEATURES.md](./docs/FEATURES.md) for complete feature list.**
 
+## Screenshots
+
+<div align="center">
+
+### Login & Registration
+![Login](screenshots/login.png)
+![Registration](screenshots/registration.png)
+
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### Flights Management
+![Flights](screenshots/flights.png)
+![Live Flight View](screenshots/live-flight.png)
+
+### Drone & Remote Management
+![Drones](screenshots/drones.png)
+![Remotes](screenshots/remotes.png)
+
+</div>
+
 ## Getting Started
 
 ### Prerequisites
