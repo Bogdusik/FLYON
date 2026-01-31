@@ -24,6 +24,9 @@
     "three": "^0.160.0",
     "zod": "^3.22.4"
   },
+  "overrides": {
+    "lodash": "4.17.21"
+  },
   "devDependencies": {
     "@types/leaflet": "^1.9.8",
     "@types/node": "^20.10.0",

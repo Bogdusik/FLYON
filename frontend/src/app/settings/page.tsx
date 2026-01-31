@@ -28,13 +28,20 @@ export default function SettingsPage() {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
+      // CWE-79: only use our own blob URL (not user/remote HTML) for download link
+      if (!url.startsWith('blob:')) {
+        window.URL.revokeObjectURL(url);
+        throw new Error('Invalid export URL');
+      }
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `flyon-export-${Date.now()}.json`;
+      a.setAttribute('href', url);
+      a.setAttribute('download', `flyon-export-${Date.now()}.json`);
+      a.setAttribute('rel', 'noopener noreferrer');
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (err: any) {
       setError(err.message || 'Failed to export data');
     } finally {

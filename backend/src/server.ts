@@ -30,6 +30,7 @@ import { correlationIdMiddleware } from './middleware/correlationId';
 import { getRedisClient } from './config/redis';
 
 const app = express();
+app.disable('x-powered-by');
 const PORT = env.port;
 const API_PREFIX = env.apiPrefix;
 
