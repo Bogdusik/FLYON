@@ -8,7 +8,31 @@ import time
 import requests
 import argparse
 import sys
+import re
+from urllib.parse import urlparse
 from typing import Optional
+
+# CWE-918: allow only http/https; block cloud metadata and non-localhost private IPs (SSRF)
+def _validate_api_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        host = (parsed.hostname or '').lower()
+        if not host:
+            return False
+        # block cloud metadata and internal hostnames
+        if host in ('metadata.google.internal', '169.254.169.254'):
+            return False
+        # allow localhost / 127.0.0.1 for development
+        if host in ('localhost', '127.0.0.1'):
+            return True
+        # block other private IP ranges
+        if re.match(r'^127\.', host) or re.match(r'^10\.', host) or re.match(r'^172\.(1[6-9]|2[0-9]|3[0-1])\.', host) or re.match(r'^192\.168\.', host):
+            return False
+        return True
+    except Exception:
+        return False
 
 try:
     from pymavlink import mavutil
@@ -20,7 +44,10 @@ except ImportError:
 class FLYONGroundBridge:
     def __init__(self, device_token: str, api_url: str = "http://localhost:3001", connection_string: str = "udp:127.0.0.1:14550"):
         self.device_token = device_token
-        self.api_url = f"{api_url}/api/v1/telemetry"
+        base = api_url.rstrip('/')
+        if not _validate_api_url(base):
+            raise ValueError(f"Invalid or disallowed API URL (SSRF protection): {api_url}")
+        self.api_url = f"{base}/api/v1/telemetry"
         self.connection_string = connection_string
         self.connection = None
         self.session_id = f"session_{int(time.time())}"

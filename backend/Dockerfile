@@ -1,4 +1,5 @@
-FROM node:18-alpine
+# Snyk: node:18-alpine has 28 vulns; node:22-alpine LTS fixes Node/OpenSSL/Busybox issues
+FROM node:22-alpine
 
 WORKDIR /app
 
