@@ -80,10 +80,9 @@ setupSwagger(app);
 // API routes with rate limiting
 // Note: More specific routes should be registered first
 app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes);
-app.use(`${API_PREFIX}/shared`, sharingRoutes); // Public shared routes (before auth)
-app.use(`${API_PREFIX}/users`, sharingRoutes); // Public user profiles
 app.use(`${API_PREFIX}/drones`, betaflightRoutes); // Betaflight routes (more specific, before general drones)
 app.use(`${API_PREFIX}/drones`, droneRoutes);
+app.use(`${API_PREFIX}/flights`, sharingRoutes); // POST /flights/:id/share (must be before flightRoutes)
 app.use(`${API_PREFIX}/flights`, betaflightRoutes); // Betaflight routes (more specific, before general flights)
 app.use(`${API_PREFIX}/flights`, flightRoutes);
 app.use(`${API_PREFIX}/telemetry`, telemetryLimiter, telemetryRoutes);
@@ -94,6 +93,113 @@ app.use(`${API_PREFIX}/remotes`, remoteRoutes);
 app.use(`${API_PREFIX}/sharing`, sharingRoutes);
 app.use(`${API_PREFIX}/achievements`, achievementsRoutes);
 app.use(`${API_PREFIX}/weather`, weatherRoutes);
+// Public sharing routes: GET /shared/flights/:token, GET /users/:id/public, PATCH /profile/public
+// Must come after specific route mounts to avoid conflicts
+app.use(API_PREFIX, sharingRoutes);
+
+// LLM-friendly API documentation
+app.get('/llms.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(`# FLYON API Documentation
+
+Base URL: ${API_PREFIX}
+
+## Authentication
+- POST /auth/register — Register a new user. Body: { email, password, name? }
+- POST /auth/login — Login. Body: { email, password }. Returns JWT token.
+- GET /auth/me — Get current user profile. Requires Bearer token.
+- PATCH /auth/me — Update profile. Body: { name?, phone?, avatar_url? }. Requires Bearer token.
+- DELETE /auth/me — Delete account (GDPR). Requires Bearer token.
+
+## Drones
+- GET /drones — List user's drones.
+- POST /drones — Create drone. Body: { name, model?, manufacturer?, firmware_version?, metadata? }
+- GET /drones/:id — Get drone by ID.
+- PATCH /drones/:id — Update drone.
+- POST /drones/:id/regenerate-token — Regenerate device token.
+- DELETE /drones/:id — Delete drone (cascades flights/telemetry).
+
+## Flights
+- GET /flights — List flights. Query: drone_id?, status?, limit?, offset?
+- POST /flights — Create flight. Body: { drone_id, session_id?, started_at? }
+- GET /flights/:id — Get flight by ID.
+- PATCH /flights/:id — Update flight. Body: { ended_at?, status? }
+- DELETE /flights/:id — Delete flight.
+- DELETE /flights — Delete all user flights.
+- GET /flights/:id/telemetry — Get telemetry points. Query: limit?, offset?, start_time?, end_time?
+- GET /flights/:id/replay — Get replay data. Query: speed? (1x/2x/4x/8x)
+- POST /flights/:id/recalculate-stats — Recalculate flight statistics.
+- POST /flights/upload-log — Upload log file (CSV/JSON). Multipart: file, drone_id, session_id?
+- POST /flights/:id/share — Create shareable link. Body: { is_public?, expires_in_days? }
+- POST /flights/:id/blackbox — Upload blackbox log.
+- GET /flights/:id/blackbox/analysis — Get blackbox analysis.
+
+## Telemetry (Device Auth)
+- POST /telemetry — Ingest single telemetry point. Requires device Bearer token.
+- POST /telemetry/batch — Batch ingest. Body: { session_id, points[] }
+
+## Danger Zones
+- GET /danger-zones — List danger zones (user + public).
+- POST /danger-zones — Create zone. Body: { name, zone_type, coordinates[], description?, altitude_limit_meters?, is_public? }
+- GET /danger-zones/:id — Get zone by ID.
+- PATCH /danger-zones/:id — Update zone.
+- DELETE /danger-zones/:id — Soft-delete zone.
+
+## Analytics
+- POST /analytics/flights/:id/health-score — Calculate flight health score.
+- POST /analytics/flights/:id/risk-events — Generate risk events.
+- POST /analytics/flights/compare — Compare two flights. Body: { flight1_id, flight2_id }
+- GET /analytics/flights/:id/advanced — Get advanced metrics.
+- GET /analytics/trends — Get trends. Query: months?
+
+## Export (GDPR)
+- GET /export/data — Export all user data as JSON.
+- GET /export/flights/:id/kml — Export flight as KML.
+- GET /export/flights/:id/gpx — Export flight as GPX.
+
+## Sharing (Public)
+- GET /shared/flights/:token — Get shared flight by token (no auth).
+- GET /users/:id/public — Get public user profile (no auth).
+
+## Sharing (Authenticated)
+- GET /sharing/flights — List user's shared flights.
+- DELETE /sharing/flights/:token — Delete share link.
+- PATCH /profile/public — Update public profile settings.
+
+## Achievements
+- GET /achievements — List user achievements.
+- POST /achievements/check — Check and unlock new achievements.
+
+## Betaflight
+- POST /drones/:id/betaflight/config — Upload config file.
+- GET /drones/:id/betaflight/config — Get latest config.
+- GET /drones/:id/betaflight/config/history — Config history.
+- POST /drones/:id/betaflight/config/compare — Compare configs. Body: { config1_id, config2_id }
+- GET /drones/:id/betaflight/recommendations — PID recommendations.
+
+## Remotes
+- GET /remotes — List user's remotes.
+- POST /remotes/radiomaster/connect — Connect RadioMaster.
+- GET /remotes/:id — Get remote by ID.
+- POST /remotes/:id/disconnect — Disconnect remote.
+- PATCH /remotes/:id/status — Update status. Body: { status }
+- PATCH /remotes/:id/metadata — Update metadata.
+- DELETE /remotes/:id — Delete remote.
+
+## Weather
+- GET /weather — Get weather. Query: lat, lon, timestamp?
+
+## Health
+- GET /health — Health check (DB + Redis).
+- GET /health/ready — Readiness probe.
+- GET /health/live — Liveness probe.
+
+## Notes
+- All endpoints except /auth/register, /auth/login, /shared/*, /users/*/public require Authorization: Bearer <token>
+- Telemetry endpoints require a device token (generated per-drone)
+- Rate limits: 100 req/15min general, 5 req/15min auth, 10 uploads/hour, 1000 telemetry/min
+`);
+});
 
 // Error handler
 app.use(errorHandler);

@@ -116,55 +116,36 @@ export async function checkAchievements(userId: string): Promise<any[]> {
   const statsData = stats.rows[0];
 
   // Check for achievements
+  const totalFlights = parseInt(statsData.total_flights) || 0;
+  const maxSpeed = parseFloat(statsData.max_speed) || 0;
+  const maxAltitude = parseFloat(statsData.max_altitude) || 0;
+
   const achievements = [
-    {
-      type: 'first_flight',
-      condition: parseInt(statsData.total_flights) >= 1,
-      data: { flights: parseInt(statsData.total_flights) },
-    },
-    {
-      type: '10_flights',
-      condition: parseInt(statsData.total_flights) >= 10,
-      data: { flights: parseInt(statsData.total_flights) },
-    },
-    {
-      type: '100_flights',
-      condition: parseInt(statsData.total_flights) >= 100,
-      data: { flights: parseInt(statsData.total_flights) },
-    },
-    {
-      type: 'speed_demon',
-      condition: parseFloat(statsData.max_speed) >= 50,
-      data: { max_speed: parseFloat(statsData.max_speed) },
-    },
-    {
-      type: 'high_flyer',
-      condition: parseFloat(statsData.max_altitude) >= 100,
-      data: { max_altitude: parseFloat(statsData.max_altitude) },
-    },
+    { type: 'first_flight', condition: totalFlights >= 1, data: { flights: totalFlights } },
+    { type: '10_flights', condition: totalFlights >= 10, data: { flights: totalFlights } },
+    { type: '100_flights', condition: totalFlights >= 100, data: { flights: totalFlights } },
+    { type: 'speed_demon', condition: maxSpeed >= 50, data: { max_speed: maxSpeed } },
+    { type: 'high_flyer', condition: maxAltitude >= 100, data: { max_altitude: maxAltitude } },
   ];
 
+  const eligibleTypes = achievements.filter(a => a.condition).map(a => a.type);
+  if (eligibleTypes.length === 0) return newAchievements;
+
+  // Single query to find already-unlocked achievements
+  const existing = await query(
+    'SELECT achievement_type FROM user_achievements WHERE user_id = $1 AND achievement_type = ANY($2::text[])',
+    [userId, eligibleTypes]
+  );
+  const alreadyUnlocked = new Set(existing.rows.map((r: any) => r.achievement_type));
+
   for (const achievement of achievements) {
-    if (achievement.condition) {
-      // Check if already unlocked
-      const existing = await query(
-        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_type = $2',
-        [userId, achievement.type]
+    if (achievement.condition && !alreadyUnlocked.has(achievement.type)) {
+      await query(
+        `INSERT INTO user_achievements (user_id, achievement_type, achievement_data)
+         VALUES ($1, $2, $3)`,
+        [userId, achievement.type, JSON.stringify(achievement.data)]
       );
-
-      if (existing.rows.length === 0) {
-        // Unlock achievement
-        await query(
-          `INSERT INTO user_achievements (user_id, achievement_type, achievement_data)
-           VALUES ($1, $2, $3)`,
-          [userId, achievement.type, JSON.stringify(achievement.data)]
-        );
-
-        newAchievements.push({
-          type: achievement.type,
-          data: achievement.data,
-        });
-      }
+      newAchievements.push({ type: achievement.type, data: achievement.data });
     }
   }
 

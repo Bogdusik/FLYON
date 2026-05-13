@@ -88,8 +88,8 @@ export async function authenticateUser(
     };
 
     next();
-  } catch (error: any) {
-    res.status(401).json({ error: error.message || 'Authentication failed' });
+  } catch {
+    res.status(401).json({ error: 'Authentication failed' });
   }
 }
 
@@ -159,7 +159,7 @@ export async function authenticateDevice(
     };
 
     next();
-  } catch (error: any) {
-    res.status(401).json({ error: error.message || 'Device authentication failed' });
+  } catch {
+    res.status(401).json({ error: 'Device authentication failed' });
   }
 }

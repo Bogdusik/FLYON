@@ -1,6 +1,15 @@
 import { query } from '../config/database';
 import { Telemetry } from '../types/database';
 
+function escapeXml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 /**
  * Export service for KML/GPX export
  */
@@ -39,8 +48,8 @@ export async function exportFlightToKML(flightId: string, userId: string): Promi
   let kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>${flightData.session_id}</name>
-    <description>Flight from ${new Date(flightData.started_at).toISOString()}</description>
+    <name>${escapeXml(flightData.session_id)}</name>
+    <description>Flight from ${escapeXml(new Date(flightData.started_at).toISOString())}</description>
     <Placemark>
       <name>Flight Path</name>
       <LineString>
@@ -101,11 +110,11 @@ export async function exportFlightToGPX(flightId: string, userId: string): Promi
   let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="FLYON" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
-    <name>${flightData.session_id}</name>
-    <time>${new Date(flightData.started_at).toISOString()}</time>
+    <name>${escapeXml(flightData.session_id)}</name>
+    <time>${escapeXml(new Date(flightData.started_at).toISOString())}</time>
   </metadata>
   <trk>
-    <name>${flightData.session_id}</name>
+    <name>${escapeXml(flightData.session_id)}</name>
     <trkseg>
 `;
 

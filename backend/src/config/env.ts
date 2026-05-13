@@ -24,8 +24,8 @@ const envSchema = z.object({
   POSTGRES_PASSWORD: z.string().min(1, 'POSTGRES_PASSWORD is required'),
   POSTGRES_DB: z.string().min(1, 'POSTGRES_DB is required'),
 
-  // JWT (required in production)
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters').default('your-super-secret-jwt-key-change-in-production'),
+  // JWT (required)
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   JWT_DEVICE_TOKEN_EXPIRES_IN: z.string().default('365d'),
 
