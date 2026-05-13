@@ -80,15 +80,16 @@ router.get('/:id/betaflight/config/history', authenticateUser, asyncHandler(asyn
  * Compare two configurations
  */
 router.post('/:id/betaflight/config/compare', authenticateUser, asyncHandler(async (req, res) => {
+  const userId = (req as any).user.id;
   const { config1_id, config2_id } = req.body;
 
   const config1Result = await query(
-    'SELECT config_data FROM betaflight_configs WHERE id = $1',
-    [config1_id]
+    'SELECT config_data FROM betaflight_configs WHERE id = $1 AND user_id = $2',
+    [config1_id, userId]
   );
   const config2Result = await query(
-    'SELECT config_data FROM betaflight_configs WHERE id = $2',
-    [config2_id]
+    'SELECT config_data FROM betaflight_configs WHERE id = $1 AND user_id = $2',
+    [config2_id, userId]
   );
 
   if (config1Result.rows.length === 0 || config2Result.rows.length === 0) {

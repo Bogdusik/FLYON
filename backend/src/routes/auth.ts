@@ -1,7 +1,14 @@
 import express from 'express';
+import { z } from 'zod';
 import { asyncHandler } from '../middleware/errorHandler';
 import { authenticateUser } from '../middleware/auth';
 import { registerUser, loginUser, getUserById, updateUser, deleteUser } from '../services/userService';
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  phone: z.string().max(20).optional().nullable(),
+  avatar_url: z.string().url('avatar_url must be a valid URL').optional().nullable(),
+});
 
 const router = express.Router();
 
@@ -53,8 +60,9 @@ router.get('/me', authenticateUser, asyncHandler(async (req, res) => {
  */
 router.patch('/me', authenticateUser, asyncHandler(async (req, res) => {
   const userId = (req as any).user.id;
-  const { name, phone, avatar_url } = req.body;
-  const user = await updateUser(userId, { name, phone, avatar_url });
+  const parsed = updateProfileSchema.parse(req.body);
+  const { name, phone, avatar_url } = parsed;
+  const user = await updateUser(userId, { name, phone: phone ?? undefined, avatar_url: avatar_url ?? undefined });
   res.json({
     id: user.id,
     email: user.email,

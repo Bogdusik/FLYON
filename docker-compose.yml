@@ -3,9 +3,9 @@ services:
     image: postgis/postgis:14-3.3
     container_name: flyon-postgres
     environment:
-      POSTGRES_USER: flyon
-      POSTGRES_PASSWORD: flyon_dev_password
-      POSTGRES_DB: flyon
+      POSTGRES_USER: ${POSTGRES_USER:-flyon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-flyon}
     ports:
       - "5432:5432"
     volumes:

@@ -20,11 +20,11 @@ interface WeatherData {
 export async function getWeatherForLocation(
   _latitude: number,
   _longitude: number,
-  _timestamp?: Date
+  timestamp?: Date
 ): Promise<WeatherData> {
   // Placeholder - would integrate with OpenWeatherMap, WeatherAPI, etc.
   // For now, return mock data
-  
+
   return {
     temperature: 20,
     humidity: 65,

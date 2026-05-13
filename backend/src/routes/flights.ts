@@ -26,11 +26,21 @@ router.use(authenticateUser);
 router.get('/', asyncHandler(async (req, res) => {
   const userId = (req as any).user.id;
   const { drone_id, status, limit, offset } = req.query;
+  const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+  const parsedOffset = offset ? parseInt(offset as string, 10) : undefined;
+  if (parsedLimit !== undefined && (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000)) {
+    res.status(400).json({ error: 'limit must be between 1 and 1000' });
+    return;
+  }
+  if (parsedOffset !== undefined && (isNaN(parsedOffset) || parsedOffset < 0)) {
+    res.status(400).json({ error: 'offset must be a non-negative integer' });
+    return;
+  }
   const flights = await getUserFlights(userId, {
     droneId: drone_id as string,
     status: status as string,
-    limit: limit ? parseInt(limit as string) : undefined,
-    offset: offset ? parseInt(offset as string) : undefined,
+    limit: parsedLimit,
+    offset: parsedOffset,
   });
   res.json(flights);
 }));
@@ -105,9 +115,19 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 router.get('/:id/telemetry', asyncHandler(async (req, res) => {
   const userId = (req as any).user.id;
   const { limit, offset, start_time, end_time } = req.query;
+  const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+  const parsedOffset = offset ? parseInt(offset as string, 10) : undefined;
+  if (parsedLimit !== undefined && (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 10000)) {
+    res.status(400).json({ error: 'limit must be between 1 and 10000' });
+    return;
+  }
+  if (parsedOffset !== undefined && (isNaN(parsedOffset) || parsedOffset < 0)) {
+    res.status(400).json({ error: 'offset must be a non-negative integer' });
+    return;
+  }
   const telemetry = await getFlightTelemetry(req.params.id, userId, {
-    limit: limit ? parseInt(limit as string) : undefined,
-    offset: offset ? parseInt(offset as string) : undefined,
+    limit: parsedLimit,
+    offset: parsedOffset,
     startTime: start_time ? new Date(start_time as string) : undefined,
     endTime: end_time ? new Date(end_time as string) : undefined,
   });

@@ -56,7 +56,9 @@ export async function createDrone(userId: string, input: CreateDroneInput): Prom
  */
 export async function getUserDrones(userId: string): Promise<Drone[]> {
   const result = await query(
-    'SELECT * FROM drones WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC',
+    `SELECT id, user_id, name, model, manufacturer, firmware_version,
+            is_active, metadata, created_at, updated_at
+     FROM drones WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC`,
     [userId]
   );
 
@@ -68,7 +70,9 @@ export async function getUserDrones(userId: string): Promise<Drone[]> {
  */
 export async function getDroneById(droneId: string, userId: string): Promise<Drone | null> {
   const result = await query(
-    'SELECT * FROM drones WHERE id = $1 AND user_id = $2',
+    `SELECT id, user_id, name, model, manufacturer, firmware_version,
+            is_active, metadata, created_at, updated_at
+     FROM drones WHERE id = $1 AND user_id = $2`,
     [droneId, userId]
   );
 

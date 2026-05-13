@@ -1,14 +1,12 @@
 import multer from 'multer';
+import env from '../config/env';
 
-/**
- * Multer configuration for file uploads
- */
 const storage = multer.memoryStorage();
 
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max file size
+    fileSize: env.upload.maxFileSize,
   },
   fileFilter: (req, file, cb) => {
     // Accept CSV, JSON, and text files

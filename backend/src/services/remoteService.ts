@@ -77,7 +77,6 @@ export async function updateRemoteStatus(
 ): Promise<Remote> {
   const updates: string[] = ['status = $3'];
   const values: any[] = [remoteId, userId, status];
-  const _paramIndex = 4; // Reserved for future use
 
   if (status === 'connected') {
     updates.push(`last_connected = NOW()`);

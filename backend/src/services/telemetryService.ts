@@ -30,12 +30,9 @@ export async function ingestTelemetry(
   // Find or create active flight session
   // Use session_id from input or generate one
   const sessionId = validated.session_id || `session_${droneId}_${Date.now()}`;
-  
+
   let flight = await getFlightBySessionId(sessionId, userId);
-  if (!flight) {
-    throw new Error('Flight not found');
-  }
-  
+
   if (!flight) {
     // Create new flight session with start position
     const startPosition = createPoint(validated.latitude, validated.longitude);
