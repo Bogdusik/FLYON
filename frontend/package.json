@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-three/drei": "^9.88.0",
+    "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.15.0",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
