@@ -24,7 +24,7 @@ export const securityHeaders = helmet({
 // Sanitize user input to prevent NoSQL injection
 export const sanitizeInput = mongoSanitize({
   replaceWith: '_',
-  onSanitize: ({ req, key }: { req: Request; key: string }) => {
+  onSanitize: ({ req: _req, key: _key }: { req: Request; key: string }) => {
     // Log suspicious input (optional)
     // logger.warn(`Sanitized input: ${key}`, { ip: req.ip });
   },

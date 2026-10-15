@@ -1,5 +1,4 @@
 import { query } from '../config/database';
-import { createPoint, createLineString } from '../utils/postgis';
 import { Flight } from '../types/database';
 import { v4 as uuidv4 } from 'uuid';
 

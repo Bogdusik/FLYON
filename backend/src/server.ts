@@ -3,7 +3,7 @@ import cors from 'cors';
 import compression from 'compression';
 import { testConnection } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
-import { wsServer } from './websocket';
+import './websocket';
 import logger from './utils/logger';
 import env from './config/env';
 import authRoutes from './routes/auth';
@@ -25,7 +25,7 @@ import { autoCompleteInactiveFlights } from './services/flightAutoComplete';
 import { apiLimiter, authLimiter, uploadLimiter, telemetryLimiter } from './middleware/rateLimit';
 import { securityHeaders, sanitizeInput, securityMiddleware } from './middleware/security';
 import { setupSwagger } from './config/swagger';
-import { monitoringMiddleware, getMetrics } from './middleware/monitoring';
+import { monitoringMiddleware } from './middleware/monitoring';
 import { correlationIdMiddleware } from './middleware/correlationId';
 import { getRedisClient } from './config/redis';
 
