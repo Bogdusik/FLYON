@@ -29,6 +29,12 @@ export function errorHandler(
     return;
   }
 
+  // Telemetry for a flight that has already finished
+  if (err.name === 'FlightNotActiveError') {
+    res.status(409).json({ error: err.message });
+    return;
+  }
+
   // Validation errors
   if (err.name === 'ValidationError' || err.name === 'ZodError') {
     res.status(400).json({ error: err.message });

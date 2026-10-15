@@ -5,12 +5,21 @@ import { getFlightBySessionId } from './flightService';
 import { broadcastTelemetry, broadcastWarning } from '../websocket';
 import { validateTelemetryInput } from '../validators/telemetry';
 import { calculateRTH, triggerRTH } from './rthService';
+import { recomputeFlightStats, recordPoint } from './flightStats';
 import logger from '../utils/logger';
 
 /**
  * Telemetry service
  * Handles telemetry ingestion and processing
  */
+
+/** Telemetry for a flight that is no longer active (completed or cancelled); answered with 409. */
+export class FlightNotActiveError extends Error {
+  constructor(flightId: string) {
+    super(`Flight ${flightId} is not active`);
+    this.name = 'FlightNotActiveError';
+  }
+}
 
 /**
  * Ingest telemetry point
@@ -31,9 +40,15 @@ export async function ingestTelemetry(
   // Use session_id from input or generate one
   const sessionId = validated.session_id || `session_${droneId}_${Date.now()}`;
 
-  let flight = await getFlightBySessionId(sessionId, userId);
+  const existing = await getFlightBySessionId(sessionId, userId);
+  if (existing && existing.status !== 'active') {
+    throw new FlightNotActiveError(existing.id);
+  }
 
-  if (!flight) {
+  let flightId: string;
+  if (existing) {
+    flightId = existing.id;
+  } else {
     // Create new flight session with start position
     const startPosition = createPoint(validated.latitude, validated.longitude);
     const flightResult = await query(
@@ -42,8 +57,9 @@ export async function ingestTelemetry(
        RETURNING id`,
       [droneId, userId, sessionId, timestamp, startPosition]
     );
-    flight = { id: flightResult.rows[0].id } as any;
+    flightId = flightResult.rows[0].id;
   }
+  const flight = { id: flightId };
 
   // Insert telemetry point
   const telemetryResult = await query(
@@ -84,8 +100,16 @@ export async function ingestTelemetry(
     is_armed: validated.armed || false,
   });
 
-  // Update flight statistics (async, non-blocking)
-  updateFlightStats(flight.id).catch((error) => {
+  // Update flight statistics incrementally: one UPDATE per point, queued per flight (async, non-blocking)
+  recordPoint(flight.id, {
+    id: telemetryId,
+    timestamp,
+    latitude: validated.latitude,
+    longitude: validated.longitude,
+    altitude: validated.altitude,
+    speed: validated.speed || 0,
+    battery: validated.battery,
+  }).catch((error) => {
     logger.error('Failed to update flight stats', { flightId: flight.id, error: error.message });
   });
 
@@ -165,161 +189,6 @@ async function checkBatteryAndRTH(
   } catch (error: any) {
     // Don't throw - this is a safety feature, shouldn't break telemetry ingestion
     logger.error('Error in battery/RTH check', { flightId, error: error.message });
-  }
-}
-
-/**
- * Update flight statistics based on telemetry
- * Exported for use in other services
- */
-export async function updateFlightStats(flightId: string): Promise<void> {
-  try {
-    // Get aggregated stats from telemetry
-    const statsResult = await query(
-      `SELECT 
-        COUNT(*) as point_count,
-        MIN(timestamp) as first_timestamp,
-        MAX(timestamp) as last_timestamp,
-        MIN(altitude_meters) as min_altitude,
-        MAX(altitude_meters) as max_altitude,
-        MAX(speed_mps) as max_speed,
-        MIN(battery_percent) as min_battery,
-        ST_AsText(ST_MakePoint(AVG(ST_X(position)), AVG(ST_Y(position)))) as avg_position
-      FROM telemetry
-      WHERE flight_id = $1`,
-      [flightId]
-    );
-
-    if (statsResult.rows.length === 0 || !statsResult.rows[0].point_count || parseInt(statsResult.rows[0].point_count) === 0) {
-      logger.warn('No telemetry points found for flight', { flightId });
-      return;
-    }
-
-    const stats = statsResult.rows[0];
-    const duration = stats.last_timestamp && stats.first_timestamp
-      ? Math.floor((new Date(stats.last_timestamp).getTime() - new Date(stats.first_timestamp).getTime()) / 1000)
-      : null;
-
-    // Validate and convert stats values (handle null/undefined/NaN)
-    const maxAltitude = stats.max_altitude != null && !isNaN(Number(stats.max_altitude)) 
-      ? Number(stats.max_altitude) 
-      : null;
-    const maxSpeed = stats.max_speed != null && !isNaN(Number(stats.max_speed)) 
-      ? Number(stats.max_speed) 
-      : null;
-    const minBattery = stats.min_battery != null && !isNaN(Number(stats.min_battery)) 
-      ? Number(stats.min_battery) 
-      : null;
-
-  // Calculate total distance (sum of distances between consecutive points)
-  // Use a more reliable method with self-join to avoid LAG issues
-  const distanceResult = await query(
-    `WITH ordered_telemetry AS (
-      SELECT position, timestamp,
-             LAG(position) OVER (ORDER BY timestamp) as prev_position
-      FROM telemetry
-      WHERE flight_id = $1
-      ORDER BY timestamp
-    )
-    SELECT COALESCE(SUM(
-      CASE 
-        WHEN prev_position IS NOT NULL THEN 
-          ST_Distance(position::geography, prev_position::geography)
-        ELSE 0
-      END
-    ), 0) as total_distance
-    FROM ordered_telemetry`,
-    [flightId]
-  );
-
-  const totalDistance = distanceResult.rows[0]?.total_distance || 0;
-
-  // Get start and end positions
-  const positionResult = await query(
-    `SELECT 
-      ST_AsText(position) as position,
-      timestamp
-    FROM telemetry
-    WHERE flight_id = $1
-    ORDER BY timestamp ASC
-    LIMIT 1`,
-    [flightId]
-  );
-
-  const endPositionResult = await query(
-    `SELECT 
-      ST_AsText(position) as position,
-      timestamp
-    FROM telemetry
-    WHERE flight_id = $1
-    ORDER BY timestamp DESC
-    LIMIT 1`,
-    [flightId]
-  );
-
-    const startPos = positionResult.rows[0]?.position || null;
-    const endPos = endPositionResult.rows[0]?.position || null;
-
-    // Build UPDATE query dynamically to handle NULL positions correctly
-    const updateFields: string[] = [
-      'duration_seconds = $1',
-      'total_distance_meters = $2',
-      'max_altitude_meters = $3',
-      'max_speed_mps = $4',
-      'min_battery_percent = $5',
-    ];
-    
-    const updateValues: any[] = [
-      duration,
-      totalDistance || 0,
-      maxAltitude,
-      maxSpeed,
-      minBattery,
-    ];
-    
-    let paramIndex = 6;
-    
-    // Add start_position update only if we have a value
-    if (startPos) {
-      updateFields.push(`start_position = ST_GeomFromText($${paramIndex}, 4326)`);
-      updateValues.push(startPos);
-      paramIndex++;
-    }
-    
-    // Add end_position update only if we have a value
-    if (endPos) {
-      updateFields.push(`end_position = ST_GeomFromText($${paramIndex}, 4326)`);
-      updateValues.push(endPos);
-      paramIndex++;
-    }
-    
-    // Always update updated_at
-    updateFields.push('updated_at = NOW()');
-    
-    // Add flightId as the last parameter
-    updateValues.push(flightId);
-    
-    // Update flight record with calculated statistics
-    const updateQuery = `UPDATE flights SET
-        ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}`;
-    
-    await query(updateQuery, updateValues);
-    
-    logger.info('Flight statistics updated successfully', { 
-      flightId, 
-      distance: totalDistance,
-      maxAltitude: stats.max_altitude,
-      maxSpeed: stats.max_speed,
-      minBattery: stats.min_battery
-    });
-  } catch (error: any) {
-    logger.error('Failed to update flight statistics', { 
-      flightId, 
-      error: error.message,
-      stack: error.stack 
-    });
-    throw error;
   }
 }
 
@@ -427,9 +296,15 @@ export async function batchIngestTelemetry(
   }
 
   // Find or create flight
-  let flight = await getFlightBySessionId(sessionId, userId);
-  
-  if (!flight) {
+  const existing = await getFlightBySessionId(sessionId, userId);
+  if (existing && existing.status !== 'active') {
+    throw new FlightNotActiveError(existing.id);
+  }
+
+  let flightId: string;
+  if (existing) {
+    flightId = existing.id;
+  } else {
     const firstPoint = points[0];
     const timestamp = firstPoint.timestamp ? new Date(firstPoint.timestamp) : new Date();
     const startPosition = createPoint(firstPoint.latitude, firstPoint.longitude);
@@ -439,8 +314,9 @@ export async function batchIngestTelemetry(
        RETURNING id`,
       [droneId, userId, sessionId, timestamp, startPosition]
     );
-    flight = { id: flightResult.rows[0].id } as any;
+    flightId = flightResult.rows[0].id;
   }
+  const flight = { id: flightId };
 
   // Batch insert telemetry points
   const values: any[] = [];
@@ -479,8 +355,8 @@ export async function batchIngestTelemetry(
     values
   );
 
-  // Update flight stats and check zones after batch insert
-  await updateFlightStats(flight.id);
+  // Recompute the flight's stats once for the whole batch (queued behind any live points), then check zones
+  await recomputeFlightStats(flight.id);
   
   // Check zones for all points (simplified - check first, middle, last)
   const checkPoints = [
