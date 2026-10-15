@@ -141,6 +141,7 @@ Connect to `ws://localhost:3002?token=<JWT_TOKEN>`
 
 FLYON is optimized for smooth real-time updates with minimal system load:
 
+- **Incremental Flight Stats**: Each live telemetry point updates the flight's running statistics with one `UPDATE` instead of re-aggregating the whole flight; a 9,000-point flight took 50.1 s instead of 152.8 s in the benchmark ([docs/performance/telemetry-ingest.md](./docs/performance/telemetry-ingest.md))
 - **Memory Management**: Automatic telemetry array limiting (max 10,000 points)
 - **WebSocket Optimization**: Primary real-time channel with intelligent fallback
 - **Component Memoization**: Memoized components and derived data to avoid needless recalculations
