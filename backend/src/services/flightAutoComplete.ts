@@ -1,5 +1,5 @@
 import { query } from '../config/database';
-import { updateFlightStats } from './telemetryService';
+import { recomputeFlightStats } from './flightStats';
 import logger from '../utils/logger';
 
 /**
@@ -39,7 +39,7 @@ export async function autoCompleteInactiveFlights(): Promise<number> {
   if (result.rows.length > 0) {
     const flightIds = result.rows.map(row => row.id);
     for (const flightId of flightIds) {
-      updateFlightStats(flightId).catch((error) => {
+      recomputeFlightStats(flightId).catch((error) => {
         logger.error('Failed to update stats for auto-completed flight', { flightId, error: error.message });
       });
     }
@@ -67,8 +67,8 @@ export async function completeFlight(flightId: string, userId: string): Promise<
     [endedAt, flightId, userId]
   );
 
-  // Calculate statistics after completing flight
-  updateFlightStats(flightId).catch((error) => {
+  // Final statistics, queued behind any points still being processed for this flight
+  recomputeFlightStats(flightId).catch((error) => {
     logger.error('Failed to update stats for completed flight', { flightId, error: error.message });
   });
 }

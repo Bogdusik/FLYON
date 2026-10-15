@@ -101,7 +101,7 @@ export async function compareFlights(
 /**
  * Calculate advanced metrics for a flight
  */
-export async function calculateAdvancedMetrics(flightId: string, userId: string): Promise<AdvancedFlightMetrics> {
+export async function calculateAdvancedMetrics(flightId: string, _userId: string): Promise<AdvancedFlightMetrics> {
   // Get telemetry data
   const telemetry = await query(
     `SELECT timestamp, altitude_meters, speed_mps, heading_degrees, battery_percent, raw_data
@@ -119,9 +119,9 @@ export async function calculateAdvancedMetrics(flightId: string, userId: string)
   let maxGforce = 0;
   let minGforce = 0;
   let totalGforce = 0;
-  let maxPitch = 0;
-  let maxRoll = 0;
-  let maxYawRate = 0;
+  const maxPitch = 0;
+  const maxRoll = 0;
+  const maxYawRate = 0;
   const gforcePeaks: Array<{ timestamp: number; value: number }> = [];
   const maneuvers: ManeuverAnalysis[] = [];
 

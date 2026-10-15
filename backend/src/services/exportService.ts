@@ -1,5 +1,4 @@
 import { query } from '../config/database';
-import { Telemetry } from '../types/database';
 
 function escapeXml(str: string): string {
   return String(str)

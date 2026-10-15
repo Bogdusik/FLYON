@@ -8,7 +8,7 @@ export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   logger.error('Request error', {
     error: err.message,
@@ -26,6 +26,12 @@ export function errorHandler(
 
   if (err.message.includes('violates foreign key constraint')) {
     res.status(400).json({ error: 'Invalid reference' });
+    return;
+  }
+
+  // Telemetry for a flight that has already finished
+  if (err.name === 'FlightNotActiveError') {
+    res.status(409).json({ error: err.message });
     return;
   }
 

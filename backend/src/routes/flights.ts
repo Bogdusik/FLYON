@@ -12,7 +12,7 @@ import {
   deleteFlight,
   deleteAllFlights,
 } from '../services/flightService';
-import { updateFlightStats } from '../services/telemetryService';
+import { recomputeFlightStats } from '../services/flightStats';
 
 const router = express.Router();
 
@@ -77,7 +77,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
       !flight.total_distance_meters && !flight.max_altitude_meters && 
       !flight.max_speed_mps && !flight.min_battery_percent) {
     // Trigger stats calculation asynchronously (don't wait)
-    updateFlightStats(flight.id).catch((error) => {
+    recomputeFlightStats(flight.id).catch((error) => {
       logger.error('Failed to calculate stats for completed flight', { error: error.message, flightId: flight.id });
     });
   }
@@ -99,7 +99,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
   
   // If flight was just completed, calculate statistics
   if (status === 'completed' || (flight.status === 'completed' && status === undefined)) {
-    updateFlightStats(flight.id).catch((error) => {
+    recomputeFlightStats(flight.id).catch((error) => {
       // Log error but don't fail the request
       logger.error('Failed to update flight stats', { error: error.message, flightId: flight.id });
     });
@@ -222,7 +222,7 @@ router.post('/:id/recalculate-stats', asyncHandler(async (req, res) => {
   }
   
   // Recalculate statistics
-  await updateFlightStats(flightId);
+  await recomputeFlightStats(flightId);
   
   // Return updated flight data
   const updatedFlight = await getFlightById(flightId, userId);
