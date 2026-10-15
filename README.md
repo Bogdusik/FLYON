@@ -143,7 +143,7 @@ FLYON is optimized for smooth real-time updates with minimal system load:
 
 - **Memory Management**: Automatic telemetry array limiting (max 10,000 points)
 - **WebSocket Optimization**: Primary real-time channel with intelligent fallback
-- **Component Memoization**: Reduced recalculations by 70-80%
+- **Component Memoization**: Memoized components and derived data to avoid needless recalculations
 - **Map Debouncing**: Smooth 60 FPS map updates with <100ms latency
 - **Graph Optimization**: Efficient rendering even with 10,000+ telemetry points
 
