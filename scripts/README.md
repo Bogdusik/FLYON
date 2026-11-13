@@ -36,6 +36,12 @@ Located in `scripts/telemetry/`:
 
 ## Usage
 
+The telemetry and simulation scripts read the device token from `FLYON_DEVICE_TOKEN`; tokens are never hardcoded. Get one from the Drones page in the app (see [docs/USING_DEVICE_TOKEN.md](../docs/USING_DEVICE_TOKEN.md)), then:
+
+```bash
+export FLYON_DEVICE_TOKEN=<your-device-token>
+```
+
 Make scripts executable:
 ```bash
 chmod +x scripts/*.sh scripts/telemetry/*.sh
@@ -56,10 +62,10 @@ npx ts-node scripts/cleanup-database.ts
 ### Flight Simulation
 
 ```bash
-# Simulate 15-minute flight
+# Simulate 15-minute flight (uses FLYON_DEVICE_TOKEN)
 python3 scripts/simulate_15min_flight.py
 
-# With custom device token
+# Or pass the token explicitly (overrides FLYON_DEVICE_TOKEN)
 python3 scripts/simulate_15min_flight.py YOUR_DEVICE_TOKEN
 ```
 

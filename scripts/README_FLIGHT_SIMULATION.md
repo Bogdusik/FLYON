@@ -23,12 +23,15 @@
 ## Использование
 
 ```bash
-# Использовать device token по умолчанию (из скрипта)
+# Device token берётся из переменной окружения (скопируйте его на странице Drones)
+export FLYON_DEVICE_TOKEN=<your-device-token>
 python3 scripts/simulate_15min_flight.py
 
-# Или указать свой device token
+# Или передайте токен аргументом (имеет приоритет над FLYON_DEVICE_TOKEN)
 python3 scripts/simulate_15min_flight.py YOUR_DEVICE_TOKEN
 ```
+
+Без токена скрипт сразу завершится с подсказкой. Подробнее: [docs/USING_DEVICE_TOKEN.md](../docs/USING_DEVICE_TOKEN.md).
 
 **Примечание:** На macOS используйте `python3` вместо `python`.
 
