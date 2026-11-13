@@ -2,11 +2,15 @@
 """
 Send multiple telemetry points to create a visible flight path
 """
+import sys
+import os
 import requests
 import time
 import json
 
-DEVICE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkcm9uZUlkIjoiYThhZDliZmItOThiOC00NTBiLTljZGEtZjEzNGEzOGVjOGZhIiwidXNlcklkIjoiYWU5NDZjZmMtZTNjZC00MWRlLWJlOTgtZWE3NWEyOTE2ZWFiIiwidHlwZSI6ImRldmljZSIsImlhdCI6MTc2ODE2ODg4OCwiZXhwIjoxNzk5NzA0ODg4fQ.yzwGam5Oe8yiKvtuAfygAwJ63PsuRAzF2EDzpQ1qrc0"
+DEVICE_TOKEN = os.environ.get("FLYON_DEVICE_TOKEN")
+if not DEVICE_TOKEN:
+    sys.exit("FLYON_DEVICE_TOKEN is not set. Copy a device token from the Drones page in the FLYON app (or POST /api/v1/drones/<id>/regenerate-token), then run: export FLYON_DEVICE_TOKEN=<token>. See docs/USING_DEVICE_TOKEN.md")
 
 API_URL = "http://localhost:3001/api/v1/telemetry"
 

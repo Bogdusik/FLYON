@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 FLYON_API_URL = os.getenv('FLYON_API_URL', 'http://localhost:3001')
 FLYON_API_PREFIX = os.getenv('FLYON_API_PREFIX', '/api/v1')
-JWT_TOKEN = os.getenv('FLYON_JWT_TOKEN', '')
+JWT_TOKEN = os.getenv('FLYON_USER_TOKEN') or os.getenv('FLYON_JWT_TOKEN', '')
 REMOTE_ID = os.getenv('RADIOMASTER_REMOTE_ID', '')
 SERIAL_PORT = os.getenv('RADIOMASTER_SERIAL_PORT', '')
 BAUD_RATE = int(os.getenv('RADIOMASTER_BAUD_RATE', '115200'))
@@ -286,7 +286,7 @@ class RadioMasterBridge:
 def main():
     """Main entry point"""
     if not JWT_TOKEN:
-        logger.error("FLYON_JWT_TOKEN environment variable is required")
+        logger.error("FLYON_USER_TOKEN environment variable is required (log in via POST /api/v1/auth/login, then export FLYON_USER_TOKEN=<token>)")
         sys.exit(1)
     
     if not REMOTE_ID:

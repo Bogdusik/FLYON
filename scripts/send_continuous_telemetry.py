@@ -3,14 +3,16 @@
 Send continuous telemetry to keep a flight active for testing
 Usage: python scripts/send_continuous_telemetry.py [session_id]
 """
+import os
 import requests
 import time
 import sys
 from datetime import datetime
 import math
 
-# Device token
-DEVICE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkcm9uZUlkIjoiODgyYTNlZTUtZThmZS00NGFjLThlYTMtOTQxOWUyZGMzOGRlIiwidXNlcklkIjoiYWU5NDZjZmMtZTNjZC00MWRlLWJlOTgtZWE3NWEyOTE2ZWFiIiwidHlwZSI6ImRldmljZSIsImlhdCI6MTc2ODMxNjM2OCwiZXhwIjoxNzk5ODUyMzY4fQ.R8V9A3bSAtGa-h2Qr8mvxJSjnjpQliIuMeV8mjwnl4U"
+DEVICE_TOKEN = os.environ.get("FLYON_DEVICE_TOKEN")
+if not DEVICE_TOKEN:
+    sys.exit("FLYON_DEVICE_TOKEN is not set. Copy a device token from the Drones page in the FLYON app (or POST /api/v1/drones/<id>/regenerate-token), then run: export FLYON_DEVICE_TOKEN=<token>. See docs/USING_DEVICE_TOKEN.md")
 
 API_URL = "http://localhost:3001/api/v1/telemetry"
 
