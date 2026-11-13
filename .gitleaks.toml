@@ -1,0 +1,12 @@
+title = "FLYON gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documentation placeholders (YOUR_TOKEN, YOUR_DEVICE_TOKEN, YOUR_USER_TOKEN, <token>)"
+regexTarget = "secret"
+regexes = [
+  '''^YOUR_(DEVICE_|USER_|JWT_)?TOKEN$''',
+  '''^<[a-z-]*token>$''',
+]
