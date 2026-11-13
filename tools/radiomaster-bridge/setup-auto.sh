@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Quick setup script with provided JWT token
+# Quick setup script; reads the user JWT from FLYON_USER_TOKEN
 # This will configure auto-connect and optionally set up auto-start
 
 BRIDGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$BRIDGE_DIR/.bridge-config"
-JWT_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhZTk0NmNmYy1lM2NkLTQxZGUtYmU5OC1lYTc1YTI5MTZlYWIiLCJlbWFpbCI6ImJvZ2R5bjEzQGdtYWlsLmNvbSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4MzkyOTMxLCJleHAiOjE3Njg5OTc3MzF9.o1DP4DajaxaraA6xDmQnFNRPQpA7Qc2MNHxyUcyPbQU"
-API_URL="http://localhost:3001"
+JWT_TOKEN="${FLYON_USER_TOKEN:?FLYON_USER_TOKEN is not set. Log in via POST /api/v1/auth/login and use the returned token, then run: export FLYON_USER_TOKEN=<token>. See docs/USING_DEVICE_TOKEN.md}"
+API_URL="${FLYON_API_URL:-http://localhost:3001}"
 
 echo "🚁 Setting up RadioMaster Bridge Auto-Connect"
 echo ""

@@ -3,6 +3,7 @@
 Simulate a 15-minute real-time flight with automatic RTH when battery is low
 Usage: python3 scripts/simulate_15min_flight.py [device_token]
 """
+import os
 import requests
 import time
 import sys
@@ -10,8 +11,10 @@ from datetime import datetime, timedelta
 import math
 import random
 
-# Device token from user
-DEVICE_TOKEN = sys.argv[1] if len(sys.argv) > 1 else "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkcm9uZUlkIjoiMjUzMzI5YTMtNzdjNi00ZWJiLWE5ZDItNmZkOTEyYjhlOTlhIiwidXNlcklkIjoiYWU5NDZjZmMtZTNjZC00MWRlLWJlOTgtZWE3NWEyOTE2ZWFiIiwidHlwZSI6ImRldmljZSIsImlhdCI6MTc2ODMyMzk2NiwiZXhwIjoxNzk5ODU5OTY2fQ.JvzoNzrht-Kfkai-Pvsunq3mAt11lhn8rNOg__diBNU"
+# Device token: first CLI argument, otherwise FLYON_DEVICE_TOKEN
+DEVICE_TOKEN = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("FLYON_DEVICE_TOKEN")
+if not DEVICE_TOKEN:
+    sys.exit("FLYON_DEVICE_TOKEN is not set. Copy a device token from the Drones page in the FLYON app (or POST /api/v1/drones/<id>/regenerate-token), then run: export FLYON_DEVICE_TOKEN=<token>. See docs/USING_DEVICE_TOKEN.md (or pass the token as the first argument)")
 
 API_URL = "http://localhost:3001/api/v1/telemetry"
 
