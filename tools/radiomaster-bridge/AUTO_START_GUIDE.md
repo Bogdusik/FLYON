@@ -66,9 +66,12 @@ Your configuration is saved in:
 - **File:** `tools/radiomaster-bridge/.bridge-config`
 - **Contains:** API URL, JWT Token, Remote ID
 
-To update configuration:
+`.bridge-config` is gitignored. Never commit it.
+
+To update configuration (the setup script reads your user JWT from `FLYON_USER_TOKEN`):
 ```bash
 cd tools/radiomaster-bridge
+export FLYON_USER_TOKEN=YOUR_USER_TOKEN   # from POST /api/v1/auth/login
 ./setup-auto.sh
 ```
 

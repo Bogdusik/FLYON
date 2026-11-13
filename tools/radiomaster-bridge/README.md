@@ -24,11 +24,13 @@ pip install -r requirements.txt
 3. Set environment variables:
 ```bash
 export FLYON_API_URL="http://localhost:3001"
-export FLYON_JWT_TOKEN="your_jwt_token_here"
+export FLYON_USER_TOKEN="YOUR_USER_TOKEN"     # token from POST /api/v1/auth/login (FLYON_JWT_TOKEN still works)
 export RADIOMASTER_REMOTE_ID="remote_id_from_flyon"
 export RADIOMASTER_SERIAL_PORT="/dev/ttyUSB0"  # Optional, auto-detects if not set
 export RADIOMASTER_BAUD_RATE="115200"  # Optional, defaults to 115200
 ```
+
+Never hardcode the token in `run-with-port.sh`, `setup-auto.sh` or any other tracked file. See [docs/USING_DEVICE_TOKEN.md](../../docs/USING_DEVICE_TOKEN.md).
 
 4. Run the bridge:
 ```bash
