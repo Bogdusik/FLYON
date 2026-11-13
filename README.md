@@ -157,6 +157,22 @@ For detailed performance optimizations, see [docs/PERFORMANCE_OPTIMIZATIONS.md](
 - **Production-Ready**: Clean architecture, scalable design
 - **Performance-Optimized**: Smooth real-time updates with minimal resource usage
 
+## Secret Scanning
+
+Tokens are never hardcoded. The dev scripts read `FLYON_DEVICE_TOKEN` / `FLYON_USER_TOKEN` from the environment (see [docs/USING_DEVICE_TOKEN.md](docs/USING_DEVICE_TOKEN.md)).
+
+- **CI:** `.github/workflows/secret-scan.yml` runs [gitleaks](https://github.com/gitleaks/gitleaks) on every push and pull request. It scans only the commits the push or PR introduces.
+- **Config:** `.gitleaks.toml` extends the default ruleset and allowlists doc placeholders such as `YOUR_TOKEN`.
+- **Pre-commit (optional):** blocks a commit when staged changes contain a secret.
+
+  ```bash
+  brew install pre-commit   # or: pipx install pre-commit
+  pre-commit install        # one-time, per clone
+  pre-commit run gitleaks   # scan currently staged changes manually
+  ```
+
+- **Manual scan of the working tree:** `gitleaks dir .`
+
 ## License
 
 MIT
