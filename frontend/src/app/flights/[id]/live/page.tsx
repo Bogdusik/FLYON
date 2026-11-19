@@ -7,10 +7,12 @@ import { flightsAPI, dangerZonesAPI } from '@/lib/api';
 import { Flight, Telemetry, DangerZone } from '@/types';
 import { getWebSocketClient } from '@/lib/websocket';
 import Navbar from '@/components/Navbar';
-import LiveFlightMap from '@/components/LiveFlightMap';
 import VideoFeedPanel from '@/components/VideoFeedPanel';
 import FlightControlPanel from '@/components/FlightControlPanel';
 import { toast } from '@/components/Toast';
+
+// Leaflet touches window on import, so the map cannot be rendered on the server.
+const LiveFlightMap = dynamic(() => import('@/components/LiveFlightMap'), { ssr: false });
 
 const MAX_TELEMETRY_POINTS = 10000;
 
