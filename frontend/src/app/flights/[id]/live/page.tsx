@@ -77,7 +77,11 @@ export default function LiveFlightPage() {
       const flightData = flightRes.data;
       setFlight(flightData);
       setDangerZones(zonesRes.data);
-      
+
+      // Opened mid-flight: draw what was already recorded before live points start arriving.
+      const telemetryRes = await flightsAPI.getTelemetry(flightId, { limit: MAX_TELEMETRY_POINTS });
+      setTelemetry(telemetryRes.data);
+
       if (flightData.status === 'active') {
         flightStartTimeRef.current = new Date(flightData.started_at);
         // Setup WebSocket after flight is set
