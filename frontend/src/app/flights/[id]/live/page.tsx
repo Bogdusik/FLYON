@@ -7,10 +7,12 @@ import { flightsAPI, dangerZonesAPI } from '@/lib/api';
 import { Flight, Telemetry, DangerZone } from '@/types';
 import { getWebSocketClient } from '@/lib/websocket';
 import Navbar from '@/components/Navbar';
-import LiveFlightMap from '@/components/LiveFlightMap';
 import VideoFeedPanel from '@/components/VideoFeedPanel';
 import FlightControlPanel from '@/components/FlightControlPanel';
 import { toast } from '@/components/Toast';
+
+// Leaflet touches window on import, so the map cannot be rendered on the server.
+const LiveFlightMap = dynamic(() => import('@/components/LiveFlightMap'), { ssr: false });
 
 const MAX_TELEMETRY_POINTS = 10000;
 
@@ -77,7 +79,11 @@ export default function LiveFlightPage() {
       const flightData = flightRes.data;
       setFlight(flightData);
       setDangerZones(zonesRes.data);
-      
+
+      // Opened mid-flight: draw what was already recorded before live points start arriving.
+      const telemetryRes = await flightsAPI.getTelemetry(flightId, { limit: MAX_TELEMETRY_POINTS });
+      setTelemetry(telemetryRes.data);
+
       if (flightData.status === 'active') {
         flightStartTimeRef.current = new Date(flightData.started_at);
         // Setup WebSocket after flight is set

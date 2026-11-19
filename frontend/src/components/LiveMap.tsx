@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DARK_BASE_URL, DARK_LABELS_URL, DARK_MAX_NATIVE_ZOOM, ESRI_ATTRIBUTION } from '@/utils/mapTiles';
 
 // Create custom drone icon
 const createDroneIcon = () => {
@@ -145,6 +146,21 @@ function MapUpdater({ center, follow }: { center?: [number, number]; follow?: bo
   return null;
 }
 
+// Frame the whole path once when the map is not following the drone (a finished flight),
+// instead of leaving it centred on the start point where long flights run off the edge.
+function FitToPath({ path, enabled }: { path: [number, number][]; enabled: boolean }) {
+  const map = useMap();
+  const fittedRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || fittedRef.current || path.length < 2) return;
+    map.fitBounds(L.latLngBounds(path), { padding: [32, 32], maxZoom: 17 });
+    fittedRef.current = true;
+  }, [enabled, path, map]);
+
+  return null;
+}
+
 function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = false }: LiveMapProps) {
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [path, setPath] = useState<[number, number][]>([]);
@@ -231,12 +247,8 @@ function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = 
         scrollWheelZoom={true}
         className="rounded-lg"
       >
-        {/* Beautiful dark map style */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-        />
+        <TileLayer attribution={ESRI_ATTRIBUTION} url={DARK_BASE_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
+        <TileLayer url={DARK_LABELS_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
         
         {/* Flight path - bright and visible */}
         {showPath && path.length > 0 && (
@@ -339,6 +351,7 @@ function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = 
 
         {/* Auto-follow drone position */}
         <MapUpdater center={currentPosition || undefined} follow={followDrone} />
+        <FitToPath path={path} enabled={!followDrone} />
       </MapContainer>
     </div>
   );

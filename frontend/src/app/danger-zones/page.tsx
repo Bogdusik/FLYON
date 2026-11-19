@@ -215,7 +215,7 @@ export default function DangerZonesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white/80 mb-1">
-                    Coordinates (JSON array of {lat, lon} objects)
+                    Coordinates (JSON array of {'{ lat, lon }'} objects)
                   </label>
                   <textarea
                     value={JSON.stringify(newZone.coordinates, null, 2)}

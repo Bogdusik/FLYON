@@ -140,14 +140,14 @@ export default function FlightsPage() {
                           ? `${Math.floor(flight.duration_seconds / 60)}m ${flight.duration_seconds % 60}s`
                           : '-'}
                       </td>
-                      <td className="hidden md:table-cell px-4 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-white/70">
-                        {flight.total_distance_meters && typeof flight.total_distance_meters === 'number'
-                          ? `${(flight.total_distance_meters / 1000).toFixed(2)} km`
+                      <td className="hidden lg:table-cell px-4 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-white/70">
+                        {flight.max_altitude_meters && typeof flight.max_altitude_meters === 'number'
+                          ? `${Number(flight.max_altitude_meters).toFixed(1)} m`
                           : '-'}
                       </td>
                       <td className="hidden md:table-cell px-4 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-white/70">
-                        {flight.max_altitude_meters && typeof flight.max_altitude_meters === 'number'
-                          ? `${Number(flight.max_altitude_meters).toFixed(1)} m`
+                        {flight.total_distance_meters && typeof flight.total_distance_meters === 'number'
+                          ? `${(flight.total_distance_meters / 1000).toFixed(2)} km`
                           : '-'}
                       </td>
                       <td className="hidden md:table-cell px-4 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm">

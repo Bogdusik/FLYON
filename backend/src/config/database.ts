@@ -4,6 +4,12 @@ import env from './env';
 
 const { Pool } = pg;
 
+// pg returns NUMERIC as a string to avoid precision loss. Every NUMERIC column here is a measurement
+// (altitude, speed, distance, battery; at most 12 digits with 2 decimals), so a JS number is exact
+// enough, and as strings they broke typeof checks and chart scales on the frontend.
+const NUMERIC_OID = 1700;
+pg.types.setTypeParser(NUMERIC_OID, (value: string) => parseFloat(value));
+
 /**
  * Database connection pool
  * Uses PostGIS for geospatial queries

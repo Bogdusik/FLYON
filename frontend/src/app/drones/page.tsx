@@ -16,7 +16,7 @@ export default function DronesPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDrone, setNewDrone] = useState({ name: '', model: '', manufacturer: '' });
-  const [showTokenModal, setShowTokenModal] = useState<string | null>(null);
+  const [tokenModal, setTokenModal] = useState<{ droneId: string; token: string } | null>(null);
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,10 +42,13 @@ export default function DronesPage() {
   const handleAddDrone = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await dronesAPI.create(newDrone);
+      const response = await dronesAPI.create(newDrone);
       setShowAddModal(false);
       setNewDrone({ name: '', model: '', manufacturer: '' });
       toast.success('Drone created successfully!');
+      if (response.data?.device_token) {
+        setTokenModal({ droneId: response.data.id, token: response.data.device_token });
+      }
       loadDrones();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create drone');
@@ -68,6 +71,16 @@ export default function DronesPage() {
         setDrones(prev => [...prev, droneToDelete]);
       }
       toast.error(error.response?.data?.error || 'Failed to delete drone');
+    }
+  };
+
+  const handleNewToken = async (droneId: string) => {
+    if (!confirm('Generate a new device token? The current token stops working, so update it wherever the drone or bridge uses it.')) return;
+    try {
+      const response = await dronesAPI.regenerateToken(droneId);
+      setTokenModal({ droneId, token: response.data.device_token });
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to generate a new token');
     }
   };
 
@@ -139,22 +152,15 @@ export default function DronesPage() {
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <p className="text-xs text-white/50 mb-2">Device Token:</p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <code className="text-xs glass rounded px-2 py-1 text-white/80 font-mono">
-                      {drone.device_token.slice(0, 8)}...
+                    <code className="text-xs glass rounded px-2 py-1 text-white/50 font-mono" title="Tokens are shown once, when they are created">
+                      ••••••••
                     </code>
                     <button
-                      onClick={() => handleCopyToken(drone.device_token, drone.id)}
+                      onClick={() => handleNewToken(drone.id)}
                       className="btn-dji btn-dji-sm text-xs whitespace-nowrap"
-                      title="Copy full token"
+                      title="Generate a new device token (the current one stops working)"
                     >
-                      {copiedTokenId === drone.id ? '✓ Copied!' : 'Copy'}
-                    </button>
-                    <button
-                      onClick={() => setShowTokenModal(drone.id)}
-                      className="btn-dji btn-dji-sm text-xs whitespace-nowrap"
-                      title="View full token"
-                    >
-                      Show
+                      New token
                     </button>
                     <Link
                       href={`/drones/${drone.id}/betaflight`}
@@ -254,47 +260,40 @@ export default function DronesPage() {
           </div>
         )}
 
-        {showTokenModal && (
+        {tokenModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="glass-strong rounded-lg p-5 max-w-xl w-full">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-medium text-white">Device Token</h2>
                 <button
-                  onClick={() => setShowTokenModal(null)}
+                  onClick={() => setTokenModal(null)}
                   className="text-white/70 hover:text-white transition-smooth"
                 >
                   ✕
                 </button>
               </div>
-              {drones.find(d => d.id === showTokenModal) && (
-                <>
-                  <p className="text-white/70 mb-4 text-sm">
-                    Use this token to authenticate telemetry requests. Keep it secure!
-                  </p>
-                  <div className="glass rounded-lg p-4 mb-4">
-                    <code className="text-sm text-white/90 break-all block font-mono">
-                      {drones.find(d => d.id === showTokenModal)!.device_token}
-                    </code>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        const token = drones.find(d => d.id === showTokenModal)!.device_token;
-                        handleCopyToken(token, showTokenModal);
-                      }}
-                      className="btn-dji btn-dji-sm flex-1"
-                    >
-                      {copiedTokenId === showTokenModal ? '✓ Copied!' : 'Copy Token'}
-                    </button>
-                    <button
-                      onClick={() => setShowTokenModal(null)}
-                      className="btn-dji btn-dji-sm"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </>
-              )}
+              <p className="text-white/70 mb-4 text-sm">
+                Use this token to authenticate telemetry requests. It is shown only now, so copy it and keep it secure.
+              </p>
+              <div className="glass rounded-lg p-4 mb-4">
+                <code className="text-sm text-white/90 break-all block font-mono">
+                  {tokenModal.token}
+                </code>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleCopyToken(tokenModal.token, tokenModal.droneId)}
+                  className="btn-dji btn-dji-sm flex-1"
+                >
+                  {copiedTokenId === tokenModal.droneId ? '✓ Copied!' : 'Copy Token'}
+                </button>
+                <button
+                  onClick={() => setTokenModal(null)}
+                  className="btn-dji btn-dji-sm"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
