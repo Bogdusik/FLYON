@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Telemetry, DangerZone } from '@/types';
 import { parsePosition } from '@/utils/position';
+import { DARK_BASE_URL, DARK_LABELS_URL, DARK_MAX_NATIVE_ZOOM, ESRI_ATTRIBUTION, SATELLITE_URL } from '@/utils/mapTiles';
 
 // Fix for default marker icons in Next.js
 if (typeof window !== 'undefined') {
@@ -138,13 +139,6 @@ export default function LiveFlightMap({ telemetry, dangerZones, latestTelemetry,
     return <div className="w-full h-full bg-gray-900 flex items-center justify-center text-white">Loading map...</div>;
   }
 
-  const getTileUrl = () => {
-    if (mapType === 'satellite') {
-      return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    }
-    return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-  };
-
   // Ensure we have a valid center
   const mapCenter: [number, number] = currentPosition || [51.505, -0.09]; // Default to London
 
@@ -158,16 +152,12 @@ export default function LiveFlightMap({ telemetry, dangerZones, latestTelemetry,
         className="rounded-none"
       >
         {mapType === 'satellite' ? (
-          <TileLayer
-            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-            url={getTileUrl()}
-          />
+          <TileLayer key="satellite" attribution={ESRI_ATTRIBUTION} url={SATELLITE_URL} />
         ) : (
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url={getTileUrl()}
-            subdomains="abcd"
-          />
+          <>
+            <TileLayer key="dark" attribution={ESRI_ATTRIBUTION} url={DARK_BASE_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
+            <TileLayer key="dark-labels" url={DARK_LABELS_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
+          </>
         )}
         
         {/* Danger Zones - Green polygons */}

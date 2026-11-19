@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DARK_BASE_URL, DARK_LABELS_URL, DARK_MAX_NATIVE_ZOOM, ESRI_ATTRIBUTION } from '@/utils/mapTiles';
 
 // Create custom drone icon
 const createDroneIcon = () => {
@@ -231,12 +232,8 @@ function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = 
         scrollWheelZoom={true}
         className="rounded-lg"
       >
-        {/* Beautiful dark map style */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-        />
+        <TileLayer attribution={ESRI_ATTRIBUTION} url={DARK_BASE_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
+        <TileLayer url={DARK_LABELS_URL} maxNativeZoom={DARK_MAX_NATIVE_ZOOM} maxZoom={19} />
         
         {/* Flight path - bright and visible */}
         {showPath && path.length > 0 && (
