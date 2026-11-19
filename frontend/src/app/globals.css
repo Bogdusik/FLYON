@@ -493,3 +493,11 @@ html {
 .button-press:active {
   transform: scale(0.95);
 }
+
+/* Leaflet 1.9 draws tiles with mix-blend-mode: plus-lighter so the anti-aliased edges of
+   neighbouring tiles add up to a seamless image. That only works on a black background:
+   on Leaflet's default #ddd the tile edges showed as light lines across the map.
+   Doubled class: leaflet.css is imported after this file and would win a tie. */
+.leaflet-container.leaflet-container {
+  background: #000;
+}
