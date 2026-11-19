@@ -12,7 +12,8 @@ If a variable is missing, the script stops right away and tells you how to set i
 ## Device token (`FLYON_DEVICE_TOKEN`)
 
 1. Open the FLYON app → **Drones**.
-2. Click **Copy** next to the drone's device token, or open the token dialog.
+2. A new drone shows its token once, right after you add it. For an existing drone, click **New token**:
+   it issues a fresh token, shows it once with a **Copy Token** button, and the old token stops working.
 
    Or use the API, with your user JWT:
 

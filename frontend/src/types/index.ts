@@ -19,7 +19,8 @@ export interface Drone {
   model: string | null;
   manufacturer: string | null;
   firmware_version: string | null;
-  device_token: string;
+  /** Only present right after creation; the list endpoint never returns tokens. */
+  device_token?: string;
   created_at: string;
   updated_at: string;
   is_active: boolean;
