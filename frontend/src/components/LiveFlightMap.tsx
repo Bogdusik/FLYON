@@ -83,20 +83,10 @@ export default function LiveFlightMap({ telemetry, dangerZones, latestTelemetry,
   const validPoints = useMemo(() => {
     if (!telemetry || telemetry.length === 0) return [];
     
-    return telemetry
-      .filter(t => {
-        if (!t || !t.position) return false;
-        try {
-          const pos = parsePosition(t.position);
-          return pos && !isNaN(pos.latitude) && !isNaN(pos.longitude);
-        } catch {
-          return false;
-        }
-      })
-      .map(t => {
-        const pos = parsePosition(t.position);
-        return [pos.latitude, pos.longitude] as [number, number];
-      });
+    return telemetry.flatMap((t) => {
+      const pos = t?.position ? parsePosition(t.position) : null;
+      return pos ? [[pos.lat, pos.lon] as [number, number]] : [];
+    });
   }, [telemetry]);
 
   // Parse danger zones
