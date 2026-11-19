@@ -245,7 +245,7 @@ export default function RemotesPage() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={handleConnectRadioMaster}
+                    onClick={() => handleConnectRadioMaster()}
                     disabled={connecting}
                     className="btn-dji btn-dji-sm flex-1"
                   >
