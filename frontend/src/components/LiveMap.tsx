@@ -146,6 +146,21 @@ function MapUpdater({ center, follow }: { center?: [number, number]; follow?: bo
   return null;
 }
 
+// Frame the whole path once when the map is not following the drone (a finished flight),
+// instead of leaving it centred on the start point where long flights run off the edge.
+function FitToPath({ path, enabled }: { path: [number, number][]; enabled: boolean }) {
+  const map = useMap();
+  const fittedRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || fittedRef.current || path.length < 2) return;
+    map.fitBounds(L.latLngBounds(path), { padding: [32, 32], maxZoom: 17 });
+    fittedRef.current = true;
+  }, [enabled, path, map]);
+
+  return null;
+}
+
 function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = false }: LiveMapProps) {
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [path, setPath] = useState<[number, number][]>([]);
@@ -336,6 +351,7 @@ function LiveMap({ telemetry, center, zoom = 15, showPath = true, followDrone = 
 
         {/* Auto-follow drone position */}
         <MapUpdater center={currentPosition || undefined} follow={followDrone} />
+        <FitToPath path={path} enabled={!followDrone} />
       </MapContainer>
     </div>
   );
