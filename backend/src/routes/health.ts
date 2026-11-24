@@ -10,7 +10,7 @@ const router = express.Router();
  * GET /health
  * Health check endpoint
  */
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   const health: any = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
  * GET /health/ready
  * Readiness check (for Kubernetes)
  */
-router.get('/ready', async (req, res) => {
+router.get('/ready', async (_req, res) => {
   try {
     await testConnection();
     res.status(200).json({ status: 'ready' });
@@ -78,7 +78,7 @@ router.get('/ready', async (req, res) => {
  * GET /health/live
  * Liveness check (for Kubernetes)
  */
-router.get('/live', (req, res) => {
+router.get('/live', (_req, res) => {
   res.status(200).json({ status: 'alive' });
 });
 

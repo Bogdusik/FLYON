@@ -11,7 +11,7 @@ const router = express.Router();
  * GET /metrics
  * Get detailed performance metrics (requires authentication)
  */
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/', authenticateUser, async (_req, res) => {
   const apiMetrics = getMetrics();
   const dbStats = await getDatabaseStats();
   const redis = getRedisClient();

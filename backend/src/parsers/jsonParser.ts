@@ -17,14 +17,14 @@ export class JSONParser extends BaseParser {
     if (Array.isArray(data)) {
       return data
         .map(point => this.normalizePoint(point))
-        .filter((point): point is TelemetryInput => point !== null);
+        .filter((point: TelemetryInput | null): point is TelemetryInput => point !== null);
     }
     
     // Handle object with points array
     if (data.points && Array.isArray(data.points)) {
       return data.points
-        .map((point: any) => this.normalizePoint(point))
-        .filter((point): point is TelemetryInput => point !== null);
+        .map((point: unknown) => this.normalizePoint(point))
+        .filter((point: TelemetryInput | null): point is TelemetryInput => point !== null);
     }
     
     // Handle single point

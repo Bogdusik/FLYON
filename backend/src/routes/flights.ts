@@ -280,7 +280,7 @@ router.post('/upload-log', upload.single('file'), asyncHandler(async (req, res) 
   }
   
   // Parse log file
-  const { parseLogFile } = await import('../parsers');
+  const { parseLogFile } = await import('../parsers/index.js');
   const points = await parseLogFile(filename, fileContent, mimeType);
   
   if (points.length === 0) {
@@ -289,7 +289,7 @@ router.post('/upload-log', upload.single('file'), asyncHandler(async (req, res) 
   }
   
   // Ingest telemetry points
-  const { batchIngestTelemetry } = await import('../services/telemetryService');
+  const { batchIngestTelemetry } = await import('../services/telemetryService.js');
   const finalSessionId = session_id || `session_${drone_id}_${Date.now()}`;
   
   await batchIngestTelemetry(drone_id, userId, finalSessionId, points);
