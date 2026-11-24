@@ -98,7 +98,7 @@ app.use(`${API_PREFIX}/weather`, weatherRoutes);
 app.use(API_PREFIX, sharingRoutes);
 
 // LLM-friendly API documentation
-app.get('/llms.txt', (req, res) => {
+app.get('/llms.txt', (_req, res) => {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(`# FLYON API Documentation
 
@@ -237,7 +237,7 @@ async function start() {
         .catch(error => logger.error('Error auto-completing flights on startup:', error));
     });
   } catch (error) {
-    logger.error('Failed to start server', { error: error.message, stack: error.stack });
+    logger.error('Failed to start server', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined });
     process.exit(1);
   }
 }

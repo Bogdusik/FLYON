@@ -1,5 +1,5 @@
 import { query } from '../config/database';
-import { Flight } from '../types/database';
+import { Flight, Telemetry } from '../types/database';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

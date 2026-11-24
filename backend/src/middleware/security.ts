@@ -31,7 +31,7 @@ export const sanitizeInput = mongoSanitize({
 });
 
 // Custom security middleware
-export function securityMiddleware(req: Request, res: Response, next: NextFunction) {
+export function securityMiddleware(_req: Request, res: Response, next: NextFunction) {
   // Remove sensitive headers
   res.removeHeader('X-Powered-By');
   

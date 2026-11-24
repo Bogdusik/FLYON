@@ -231,7 +231,7 @@ export function compareConfigs(config1: BetaflightConfig, config2: BetaflightCon
 /**
  * Get PID tuning recommendations
  */
-export function getPIDRecommendations(config: BetaflightConfig, blackboxAnalysis?: BlackboxAnalysis): string[] {
+export function getPIDRecommendations(_config: BetaflightConfig, blackboxAnalysis?: BlackboxAnalysis): string[] {
   const recommendations: string[] = [];
 
   if (!blackboxAnalysis) {

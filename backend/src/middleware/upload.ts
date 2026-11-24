@@ -8,7 +8,7 @@ export const upload = multer({
   limits: {
     fileSize: env.upload.maxFileSize,
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     // Accept CSV, JSON, and text files
     const allowedMimes = [
       'text/csv',

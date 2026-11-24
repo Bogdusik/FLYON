@@ -23,5 +23,6 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npx tsc --noEmit
       # Unit tests mock the database; the ingest benchmark needs PostGIS and is run by hand (docs/performance)
       - run: npm test -- --ci
