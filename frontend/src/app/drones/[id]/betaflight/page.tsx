@@ -3,17 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import FadeIn from '@/components/FadeIn';
 import { betaflightAPI } from '@/lib/api';
 import { toast } from '@/components/Toast';
-
-// Lazy load heavy components
-const BetaflightConfigEditor = dynamic(() => import('@/components/BetaflightConfigEditor'), {
-  loading: () => <div className="text-white/50">Loading editor...</div>,
-  ssr: false,
-});
 
 export default function BetaflightPage() {
   const params = useParams();
